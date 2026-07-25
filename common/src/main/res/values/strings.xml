@@ -709,7 +709,7 @@
     <string name="my_videos">My videos</string>
     <string name="player_audio_focus">Audio focus (pause if other players detected)</string>
     <string name="subtitle_word_lookup">Subtitle word lookup (OK pause &amp; select, OK translate)</string>
-    <string name="subtitle_word_lookup_desc">While subtitles are visible: OK pauses and enters word selection, LEFT/RIGHT move, OK shows the translation card. The card auto closes in 8s and playback resumes; BACK while the card is shown returns to selection (still paused), BACK in selection exits and resumes playback. Known words are shown in bold yellow. LEFT/RIGHT seeking is disabled in this mode.</string>
+    <string name="subtitle_word_lookup_desc">While subtitles are visible: OK pauses and enters word selection, LEFT/RIGHT move, OK shows the translation card. The card auto closes in 8s and playback resumes; BACK while the card is shown returns to selection (still paused), BACK in selection exits and resumes playback. Known words are highlighted with a yellow background. LEFT/RIGHT seeking is disabled in this mode.</string>
     <string name="paid_content_notification">Paid content notification</string>
     <string name="you_liked">you liked</string>
     <string name="premium_users_only">Premium users only. Fix for incomplete video format list</string>

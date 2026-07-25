@@ -11,7 +11,6 @@ import android.text.Spanned;
 import android.text.TextUtils;
 import android.text.style.BackgroundColorSpan;
 import android.text.style.ForegroundColorSpan;
-import android.text.style.StyleSpan;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.KeyEvent;
@@ -187,8 +186,9 @@ public class WordLookupManager {
                 if (sb == null) {
                     sb = new SpannableStringBuilder(plain);
                 }
+                // Same look as the selection cursor: solid yellow box with black glyphs
                 sb.setSpan(new BackgroundColorSpan(HIGHLIGHT_BG), matcher.start(), matcher.end(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                sb.setSpan(new ForegroundColorSpan(HIGHLIGHT_FG), matcher.start(), matcher.end(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE); // solid fill: outline/shadow makes colored glyphs blurry
+                sb.setSpan(new ForegroundColorSpan(HIGHLIGHT_FG), matcher.start(), matcher.end(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             }
         }
 
@@ -382,7 +382,6 @@ public class WordLookupManager {
             }
             if (sKnownWords.contains(mText.substring(word[0], word[1]).toLowerCase())) {
                 sb.setSpan(new ForegroundColorSpan(KNOWN_WORD_FG), word[0], word[1], Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                sb.setSpan(new StyleSpan(Typeface.BOLD), word[0], word[1], Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             }
         }
 
