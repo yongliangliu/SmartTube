@@ -118,4 +118,17 @@
             android:transitionGroup="true"
             android:layout_height="match_parent"
             android:layout_width="match_parent"/>
+
+    <!-- MOD: bilibili-style thin pink progress line pinned to the very bottom -->
+    <com.liskovsoft.smartyoutubetv2.tv.ui.playback.other.MiniProgressView
+            android:id="@+id/mini_progress"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="match_parent"
+            android:layout_height="5px"
+            android:layout_gravity="bottom"
+            android:minHeight="0dp"
+            android:maxHeight="5px"
+            android:progressDrawable="@drawable/mini_progress_bar"
+            android:max="1000"
+            android:visibility="gone"/>
 </FrameLayout>

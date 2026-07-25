@@ -59,6 +59,7 @@ import com.liskovsoft.smartyoutubetv2.common.exoplayer.controller.ExoPlayerContr
 import com.liskovsoft.smartyoutubetv2.common.exoplayer.other.DebugInfoManager;
 import com.liskovsoft.smartyoutubetv2.common.exoplayer.other.ExoPlayerInitializer;
 import com.liskovsoft.smartyoutubetv2.common.exoplayer.other.SubtitleManager;
+import com.liskovsoft.smartyoutubetv2.common.exoplayer.other.WordLookupManager;
 import com.liskovsoft.smartyoutubetv2.common.exoplayer.selector.FormatItem;
 import com.liskovsoft.smartyoutubetv2.common.exoplayer.versions.renderer.CustomOverridesRenderersFactory;
 import com.liskovsoft.smartyoutubetv2.common.exoplayer.versions.selector.RestoreTrackSelector;
@@ -80,6 +81,7 @@ import com.liskovsoft.smartyoutubetv2.tv.ui.mod.leanback.playerglue.tweaks.Playb
 import com.liskovsoft.smartyoutubetv2.tv.ui.playback.mod.SeekModePlaybackFragment;
 import com.liskovsoft.smartyoutubetv2.tv.ui.playback.mod.surface.SurfacePlaybackFragmentGlueHost;
 import com.liskovsoft.smartyoutubetv2.tv.ui.playback.other.BackboneQueueNavigator;
+import com.liskovsoft.smartyoutubetv2.tv.ui.playback.other.MiniProgressView;
 import com.liskovsoft.smartyoutubetv2.tv.ui.playback.other.VideoPlayerGlue;
 import com.liskovsoft.smartyoutubetv2.tv.ui.playback.other.VideoPlayerGlue.OnActionClickedListener;
 import com.liskovsoft.smartyoutubetv2.tv.ui.playback.previewtimebar.StoryboardSeekDataProvider;
@@ -168,6 +170,32 @@ public class PlaybackFragment extends SeekModePlaybackFragment implements Playba
         // ProgressBar.setRootView already called at this moment.
         ProgressBarManager.setup(getProgressBarManager(), (ViewGroup) root);
 
+        // MOD: bilibili-style thin pink progress line at the very bottom
+        MiniProgressView miniProgress = root != null ? root.findViewById(R.id.mini_progress) : null;
+        if (miniProgress != null) {
+            miniProgress.setPositionProvider(new MiniProgressView.PositionProvider() {
+                @Override
+                public long getPositionMs() {
+                    return mExoPlayerController != null ? PlaybackFragment.this.getPositionMs() : 0;
+                }
+
+                @Override
+                public long getDurationMs() {
+                    return mExoPlayerController != null ? PlaybackFragment.this.getDurationMs() : 0;
+                }
+
+                @Override
+                public long getBufferedMs() {
+                    return 0;
+                }
+
+                @Override
+                public boolean isUiVisible() {
+                    return isOverlayShown();
+                }
+            });
+        }
+
         return root;
     }
 
@@ -249,8 +277,13 @@ public class PlaybackFragment extends SeekModePlaybackFragment implements Playba
         //ExoPlayerInitializer.enableAudioFocus(mPlayer, false); // Disable focus in PIP
     }
 
-    public void onDispatchKeyEvent(KeyEvent event) {
-        // NOP
+    public boolean onDispatchKeyEvent(KeyEvent event) {
+        // MOD: subtitle word lookup (islandRadio style)
+        if (mSubtitleManager != null && !isOverlayShown() && mSubtitleManager.onKeyEvent(event)) {
+            return true;
+        }
+
+        return false;
     }
 
     public void onDispatchTouchEvent(MotionEvent event) {
@@ -507,6 +540,19 @@ public class PlaybackFragment extends SeekModePlaybackFragment implements Playba
 
         if (mSubtitleManager == null) {
             mSubtitleManager = new SubtitleManager(getView().findViewById(R.id.leanback_subtitles));
+
+            // MOD: word lookup needs pause/resume control
+            mSubtitleManager.setPlaybackController(new WordLookupManager.PlaybackController() {
+                @Override
+                public void setPlay(boolean play) {
+                    setPlayWhenReady(play);
+                }
+
+                @Override
+                public boolean isPlaying() {
+                    return PlaybackFragment.this.isPlaying();
+                }
+            });
 
             // subs renderer
             if (mPlayer.getTextComponent() != null) {
@@ -830,6 +876,11 @@ public class PlaybackFragment extends SeekModePlaybackFragment implements Playba
     @Override
     public void setVideo(Video video) {
         mExoPlayerController.setVideo(video);
+
+        // MOD: refresh the known words list from KV on every video load (throttled)
+        if (mSubtitleManager != null) {
+            mSubtitleManager.refreshKnownWords();
+        }
 
         if (mPlayerGlue != null && video != null) {
             // Preserve player formatting

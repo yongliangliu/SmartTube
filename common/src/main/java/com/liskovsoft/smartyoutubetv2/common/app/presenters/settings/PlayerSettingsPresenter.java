@@ -349,6 +349,11 @@ public class PlayerSettingsPresenter extends BasePresenter<Void> {
     private void appendMiscCategory(AppDialogPresenter settingsPresenter) {
         List<OptionItem> options = new ArrayList<>();
 
+        options.add(UiOptionItem.from(getContext().getString(R.string.subtitle_word_lookup),
+                getContext().getString(R.string.subtitle_word_lookup_desc),
+                option -> mPlayerTweaksData.setSubtitleWordLookupEnabled(option.isSelected()),
+                mPlayerTweaksData.isSubtitleWordLookupEnabled()));
+
         options.add(UiOptionItem.from(getContext().getString(R.string.suggestions_horizontally_scrolled),
                 option -> mPlayerTweaksData.setSuggestionsHorizontallyScrolled(option.isSelected()),
                 mPlayerTweaksData.isSuggestionsHorizontallyScrolled()));

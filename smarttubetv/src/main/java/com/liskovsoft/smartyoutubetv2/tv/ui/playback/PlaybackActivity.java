@@ -58,8 +58,9 @@ public class PlaybackActivity extends LeanbackActivity {
 
     @Override
     public boolean dispatchKeyEvent(KeyEvent event) {
-        if (mPlaybackFragment != null) {
-            mPlaybackFragment.onDispatchKeyEvent(event);
+        // MOD: subtitle word lookup may consume the event
+        if (mPlaybackFragment != null && mPlaybackFragment.onDispatchKeyEvent(event)) {
+            return true;
         }
 
         return super.dispatchKeyEvent(event);

@@ -32,6 +32,7 @@ public class SubtitleManager implements TextOutput, OnDataChange {
     private final AppPrefs mPrefs;
     private final PlayerData mPlayerData;
     private CharSequence subsBuffer;
+    private WordLookupManager mWordLookupManager;
 
     public static class SubtitleStyle {
         public final int nameResId;
@@ -69,16 +70,51 @@ public class SubtitleManager implements TextOutput, OnDataChange {
         configureSubtitleView();
     }
 
+    /** MOD: word lookup (islandRadio style). Call after the manager creation. */
+    public void setPlaybackController(WordLookupManager.PlaybackController controller) {
+        if (mWordLookupManager == null && mSubtitleView != null) {
+            mWordLookupManager = new WordLookupManager(mSubtitleView, controller, this::configureSubtitleView);
+        }
+    }
+
+    /** MOD: word lookup key handling. @return true when consumed */
+    public boolean onKeyEvent(android.view.KeyEvent event) {
+        return mWordLookupManager != null && mWordLookupManager.onKeyEvent(event);
+    }
+
+    /** MOD: refresh the known words list from KV (called on every video load) */
+    public void refreshKnownWords() {
+        if (mWordLookupManager != null) {
+            mWordLookupManager.refreshKnownWords();
+        }
+    }
+
     @Override
     public void onCues(List<Cue> cues) {
         if (mSubtitleView != null) {
-            mSubtitleView.setCues(forceCenterAlignment(cues));
+            List<Cue> result = forceCenterAlignment(cues);
+
+            if (mWordLookupManager != null) {
+                mWordLookupManager.onCues(result);
+
+                if (mWordLookupManager.isActive()) {
+                    return; // don't overwrite the highlighted subtitle
+                }
+
+                result = mWordLookupManager.decorate(result); // highlight known words
+            }
+
+            mSubtitleView.setCues(result);
         }
     }
 
     public void show(boolean show) {
         if (mSubtitleView != null) {
             mSubtitleView.setVisibility(show ? View.VISIBLE : View.GONE);
+
+            if (!show && mWordLookupManager != null) {
+                mWordLookupManager.abort();
+            }
         }
     }
 

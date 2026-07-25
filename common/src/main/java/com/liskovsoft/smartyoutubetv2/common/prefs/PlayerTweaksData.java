@@ -109,6 +109,7 @@ public class PlayerTweaksData implements ProfileChangeListener {
     private boolean mIsDontResizeVideoToFitDialogEnabled;
     private boolean mIsSuggestionsHorizontallyScrolled;
     private boolean mIsQueueRespectsPlaybackMode;
+    private boolean mIsSubtitleWordLookupEnabled;
     private final Runnable mPersistDataInt = this::persistDataInt;
 
     private PlayerTweaksData(Context context) {
@@ -691,6 +692,18 @@ public class PlayerTweaksData implements ProfileChangeListener {
         persistData();
     }
 
+    /**
+     * MOD: subtitle word lookup (islandRadio style): LEFT/RIGHT select a word, OK translates
+     */
+    public boolean isSubtitleWordLookupEnabled() {
+        return mIsSubtitleWordLookupEnabled;
+    }
+
+    public void setSubtitleWordLookupEnabled(boolean enable) {
+        mIsSubtitleWordLookupEnabled = enable;
+        persistData();
+    }
+
     private void restoreData() {
         String data = mPrefs.getProfileData(VIDEO_PLAYER_TWEAKS_DATA);
 
@@ -762,6 +775,7 @@ public class PlayerTweaksData implements ProfileChangeListener {
         mIsQuickSkipVideosAltEnabled = Helpers.parseBoolean(split, 58, false);
         mIsAudioTimeStretchingEnabled = Helpers.parseBoolean(split, 59, true);
         mIsQueueRespectsPlaybackMode = Helpers.parseBoolean(split, 60, false);
+        mIsSubtitleWordLookupEnabled = Helpers.parseBoolean(split, 61, false);
 
         updateDefaultValues();
     }
@@ -789,7 +803,8 @@ public class PlayerTweaksData implements ProfileChangeListener {
                 mIsUnsafeAudioFormatsEnabled, null, mIsLoopShortsEnabled, mIsQuickSkipShortsEnabled, mIsRememberPositionOfLiveVideosEnabled,
                 mIsOculusQuestFixEnabled, null, mIsExtraLongSpeedListEnabled, mIsQuickSkipVideosEnabled, mIsNetworkErrorFixingDisabled, mIsCommentsPlacedLeft,
                 null, mIsAudioFocusEnabled, mIsDontResizeVideoToFitDialogEnabled, mIsSuggestionsHorizontallyScrolled,
-                mIsQuickSkipShortsAltEnabled, mIsQuickSkipVideosAltEnabled, mIsAudioTimeStretchingEnabled, mIsQueueRespectsPlaybackMode
+                mIsQuickSkipShortsAltEnabled, mIsQuickSkipVideosAltEnabled, mIsAudioTimeStretchingEnabled, mIsQueueRespectsPlaybackMode,
+                mIsSubtitleWordLookupEnabled
                 ));
     }
 
