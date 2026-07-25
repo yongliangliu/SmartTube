@@ -11,7 +11,7 @@ import android.text.Spanned;
 import android.text.TextUtils;
 import android.text.style.BackgroundColorSpan;
 import android.text.style.ForegroundColorSpan;
-import android.text.style.UnderlineSpan;
+import android.text.style.StyleSpan;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.KeyEvent;
@@ -51,8 +51,11 @@ import okhttp3.Response;
 
 /**
  * Subtitle word lookup (islandRadio style).<br/>
- * OK pauses the video and enters word selection (BACK works too), LEFT/RIGHT move the highlight,
- * OK again translates (tooltip card, auto closes in 6s and playback resumes), BACK exits.<br/>
+ * OK pauses the video and enters word selection, LEFT/RIGHT move the highlight,
+ * OK again translates (tooltip card). The card auto closes in 8s and playback resumes;
+ * BACK while the card is shown returns to selection (still paused),
+ * BACK in selection exits and resumes playback (BACK never enters the mode:
+ * it must keep its default role of leaving the player).<br/>
  * Lookup results and the "known words" list are persisted in the kvdata KV API,
  * known words are highlighted in subtitles during normal playback.
  */
@@ -67,9 +70,9 @@ public class WordLookupManager {
     private static final MediaType JSON_TYPE = MediaType.parse("application/json; charset=utf-8");
     private static final int HIGHLIGHT_BG = 0xFFFFEB3B; // yellow: currently selected word
     private static final int HIGHLIGHT_FG = Color.BLACK;
-    private static final int KNOWN_WORD_FG = 0xFFF8BBD0; // light pink: already looked up words
+    private static final int KNOWN_WORD_FG = 0xFFFFEB3B; // yellow: already looked up words
     private static final Pattern WORD_PATTERN = Pattern.compile("[\\p{L}\\p{N}][\\p{L}\\p{N}'’-]*");
-    private static final int AUTO_CLOSE_MS = 6000;
+    private static final int AUTO_CLOSE_MS = 8000;
     private static final Map<String, JSONObject> sCache = new HashMap<>(); // word (lower) -> result
     private static final Set<String> sKnownWords = Collections.synchronizedSet(new HashSet<>());
     private static volatile long sLastKnownWordsLoadMs;
@@ -89,7 +92,7 @@ public class WordLookupManager {
     private final PlaybackController mController;
     private final Runnable mRestoreStyles;
     private final Handler mHandler = new Handler(Looper.getMainLooper());
-    private final Runnable mAutoClose = this::exit;
+    private final Runnable mAutoClose = this::exit; // auto close: leave the mode and resume playback
 
     private int mState = STATE_IDLE;
     private List<Cue> mCues; // last rendered cues (raw, no selection highlight)
@@ -118,8 +121,13 @@ public class WordLookupManager {
 
         if (mState == STATE_IDLE) {
             mText = extractText(cues);
+        } else if (mController != null && mController.isPlaying()) {
+            // Self-heal: the mode pauses playback, so new cues while playing mean
+            // a stale state (video changed, key focus lost etc.). Exit the mode,
+            // otherwise all fresh subtitles would be swallowed.
+            abort();
+            mText = extractText(cues);
         }
-        // while active playback is paused, so new cues aren't expected
     }
 
     public boolean isActive() {
@@ -179,8 +187,8 @@ public class WordLookupManager {
                 if (sb == null) {
                     sb = new SpannableStringBuilder(plain);
                 }
-                sb.setSpan(new ForegroundColorSpan(KNOWN_WORD_FG), matcher.start(), matcher.end(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                sb.setSpan(new UnderlineSpan(), matcher.start(), matcher.end(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                sb.setSpan(new BackgroundColorSpan(HIGHLIGHT_BG), matcher.start(), matcher.end(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                sb.setSpan(new ForegroundColorSpan(HIGHLIGHT_FG), matcher.start(), matcher.end(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE); // solid fill: outline/shadow makes colored glyphs blurry
             }
         }
 
@@ -228,14 +236,8 @@ public class WordLookupManager {
                     return true;
                 case KeyEvent.KEYCODE_BACK:
                 case KeyEvent.KEYCODE_ESCAPE:
-                    // BACK also enters selection (press it again to exit and resume)
-                    if (!hasWords()) {
-                        return false;
-                    }
-                    if (isDown) {
-                        enter(false);
-                    }
-                    return true;
+                    // BACK must keep its default role (exit the player page)
+                    return false;
                 default:
                     return false;
             }
@@ -269,7 +271,11 @@ public class WordLookupManager {
             case KeyEvent.KEYCODE_BACK:
             case KeyEvent.KEYCODE_ESCAPE:
                 if (isDown) {
-                    exit();
+                    if (mState == STATE_CARD) {
+                        hideCard(); // back to word selection, video stays paused
+                    } else {
+                        exit();
+                    }
                 }
                 return true;
             case KeyEvent.KEYCODE_DPAD_UP:
@@ -368,6 +374,18 @@ public class WordLookupManager {
 
         int[] span = mWordSpans.get(mWordIndex);
         SpannableStringBuilder sb = new SpannableStringBuilder(mText);
+
+        // known words keep their highlight in selection mode too
+        for (int[] word : mWordSpans) {
+            if (word == span) {
+                continue; // the selected word uses the selection style
+            }
+            if (sKnownWords.contains(mText.substring(word[0], word[1]).toLowerCase())) {
+                sb.setSpan(new ForegroundColorSpan(KNOWN_WORD_FG), word[0], word[1], Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                sb.setSpan(new StyleSpan(Typeface.BOLD), word[0], word[1], Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            }
+        }
+
         sb.setSpan(new BackgroundColorSpan(HIGHLIGHT_BG), span[0], span[1], Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         sb.setSpan(new ForegroundColorSpan(HIGHLIGHT_FG), span[0], span[1], Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
 
