@@ -2,7 +2,11 @@ package com.liskovsoft.smartyoutubetv2.common.app.presenters.settings;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.graphics.drawable.Drawable;
+import android.text.TextUtils;
+
 import com.liskovsoft.mediaserviceinterfaces.oauth.Account;
+import com.liskovsoft.sharedutils.helpers.Helpers;
 import com.liskovsoft.sharedutils.helpers.MessageHelpers;
 import com.liskovsoft.smartyoutubetv2.common.R;
 import com.liskovsoft.smartyoutubetv2.common.app.models.playback.ui.OptionItem;
@@ -16,6 +20,7 @@ import com.liskovsoft.smartyoutubetv2.common.misc.MediaServiceManager;
 import com.liskovsoft.smartyoutubetv2.common.prefs.AccountsData;
 import com.liskovsoft.smartyoutubetv2.common.prefs.AppPrefs;
 import com.liskovsoft.smartyoutubetv2.common.utils.AppDialogUtil;
+import com.liskovsoft.smartyoutubetv2.common.utils.GlideIconFetcher;
 import com.liskovsoft.smartyoutubetv2.common.utils.SimpleEditDialog;
 import com.liskovsoft.smartyoutubetv2.common.utils.Utils;
 
@@ -48,24 +53,33 @@ public class AccountSettingsPresenter extends BasePresenter<Void> {
     }
 
     public void show() {
-        mMediaServiceManager.loadAccounts(this::createAndShowDialog);
+        mMediaServiceManager.loadAccounts(this::fetchImagesAndShowDialog);
     }
 
-    private void createAndShowDialog(List<Account> accounts) {
+    private void fetchImagesAndShowDialog(List<Account> accounts) {
+        GlideIconFetcher.fetchDrawables(getContext(),
+                Helpers.map(accounts, Account::getAvatarImageUrl),
+                icons -> createAndShowDialog(accounts, icons));
+    }
+
+    private void createAndShowDialog(List<Account> accounts, List<Drawable> icons) {
         AppDialogPresenter settingsPresenter = AppDialogPresenter.instance(getContext());
 
-        appendSelectAccountSection(accounts, settingsPresenter);
+        appendSelectAccountSection(accounts, icons, settingsPresenter);
         appendSignInButton(settingsPresenter);
-        appendSignOutSection(accounts, settingsPresenter);
+        appendSignOutSection(accounts, icons, settingsPresenter);
         appendProtectAccountWithPassword(settingsPresenter);
         appendSeparateSettings(settingsPresenter);
         appendSelectAccountOnBoot(settingsPresenter);
 
         Account account = getSignInService().getSelectedAccount();
-        settingsPresenter.showDialog(account != null ? account.getName() : getContext().getString(R.string.settings_accounts), this::unhold);
+        int accountIndex = accounts != null ? accounts.indexOf(account) : -1;
+        CharSequence accountIcon = accountIndex != -1 ? Utils.icon(icons.get(accountIndex)) : null;
+        settingsPresenter.showDialog(account != null ? TextUtils.concat(accountIcon, " ", account.getName())
+                : getContext().getString(R.string.settings_accounts), this::unhold);
     }
 
-    private void appendSelectAccountSection(List<Account> accounts, AppDialogPresenter settingsPresenter) {
+    private void appendSelectAccountSection(List<Account> accounts, List<Drawable> icons, AppDialogPresenter settingsPresenter) {
         if (accounts == null || accounts.isEmpty()) {
             return;
         }
@@ -79,11 +93,15 @@ public class AccountSettingsPresenter extends BasePresenter<Void> {
                 }, true
         ));
 
-        String accountName = " (" + getContext().getString(R.string.dialog_account_none) + ")";
+        CharSequence accountName = " (" + getContext().getString(R.string.dialog_account_none) + ")";
+
+        int index = -1;
 
         for (Account account : accounts) {
+            index++;
+            CharSequence icon = Utils.icon(icons.get(index));
             optionItems.add(UiOptionItem.from(
-                    getFullName(account), option -> {
+                    TextUtils.concat(icon, " ", getFullName(account)), option -> {
                         AccountSelectionPresenter.instance(getContext()).selectAccount(account);
                         settingsPresenter.closeDialog();
                     }, account.isSelected()
@@ -94,19 +112,24 @@ public class AccountSettingsPresenter extends BasePresenter<Void> {
             }
         }
 
-        settingsPresenter.appendRadioCategory(getContext().getString(R.string.dialog_account_list) + accountName, optionItems);
+        String categoryTitle = getContext().getString(R.string.dialog_account_list);
+        settingsPresenter.appendRadioCategory(categoryTitle, optionItems);
     }
 
-    private void appendSignOutSection(List<Account> accounts, AppDialogPresenter settingsPresenter) {
+    private void appendSignOutSection(List<Account> accounts, List<Drawable> icons, AppDialogPresenter settingsPresenter) {
         if (accounts == null || accounts.isEmpty()) {
             return;
         }
 
         List<OptionItem> optionItems = new ArrayList<>();
 
+        int index = -1;
+
         for (Account account : accounts) {
+            index++;
+            CharSequence icon = Utils.icon(icons.get(index));
             optionItems.add(UiOptionItem.from(
-                    getFullName(account), option ->
+                    TextUtils.concat(icon, " ", getFullName(account)), option ->
                         AppDialogUtil.showConfirmationDialog(
                                 getContext(), getContext().getString(R.string.dialog_remove_account), () -> {
                                     removeAccount(account);

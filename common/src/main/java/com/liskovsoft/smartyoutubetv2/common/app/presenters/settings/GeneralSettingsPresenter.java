@@ -23,6 +23,7 @@ import com.liskovsoft.smartyoutubetv2.common.misc.MediaServiceManager;
 import com.liskovsoft.smartyoutubetv2.common.prefs.AppPrefs;
 import com.liskovsoft.smartyoutubetv2.common.prefs.GeneralData;
 import com.liskovsoft.smartyoutubetv2.common.prefs.MainUIData;
+import com.liskovsoft.smartyoutubetv2.common.prefs.NetworkData;
 import com.liskovsoft.smartyoutubetv2.common.prefs.PlayerData;
 import com.liskovsoft.smartyoutubetv2.common.prefs.PlayerTweaksData;
 import com.liskovsoft.smartyoutubetv2.common.prefs.SearchData;
@@ -45,6 +46,7 @@ public class GeneralSettingsPresenter extends BasePresenter<Void> {
     private final PlayerTweaksData mPlayerTweaksData;
     private final MainUIData mMainUIData;
     private final MediaServiceData mMediaServiceData;
+    private final NetworkData mNetworkData;
     private final SidebarService mSidebarService;
     private boolean mRestartApp;
     private final Runnable mOnFinish = () -> {
@@ -61,6 +63,7 @@ public class GeneralSettingsPresenter extends BasePresenter<Void> {
         mPlayerTweaksData = PlayerTweaksData.instance(context);
         mMainUIData = MainUIData.instance(context);
         mMediaServiceData = MediaServiceData.instance();
+        mNetworkData = NetworkData.instance(context);
         mSidebarService = SidebarService.instance(context);
     }
 
@@ -463,7 +466,14 @@ public class GeneralSettingsPresenter extends BasePresenter<Void> {
 
         int activeMode = mGeneralData.getScreensaverDimmingPercents();
 
-        for (int dimPercents : Helpers.range(10, 100, 10)) {
+        for (int dimPercents : Helpers.range(10, 80, 10)) {
+            options.add(UiOptionItem.from(
+                    dimPercents + "%",
+                    option -> mGeneralData.setScreensaverDimmingPercents(dimPercents),
+                    activeMode == dimPercents));
+        }
+
+        for (int dimPercents : Helpers.range(85, 100, 5)) {
             options.add(UiOptionItem.from(
                     dimPercents + "%",
                     option -> mGeneralData.setScreensaverDimmingPercents(dimPercents),
@@ -628,9 +638,9 @@ public class GeneralSettingsPresenter extends BasePresenter<Void> {
 
         appendProxyManager(settingsPresenter, options);
 
-        //appendOpenVPNManager(settingsPresenter, options);
+        appendConscrypt(settingsPresenter, options);
 
-        settingsPresenter.appendCheckedCategory(getContext().getString(R.string.internet_censorship), options);
+        settingsPresenter.appendCheckedCategory(getContext().getString(R.string.network_settings), options);
     }
 
     private void appendProxyManager(AppDialogPresenter settingsPresenter, List<OptionItem> options) {
@@ -647,11 +657,21 @@ public class GeneralSettingsPresenter extends BasePresenter<Void> {
                         if (option.isSelected()) {
                             settingsPresenter.closeDialog();
                         }
-                        
+
                         OkHttpManager.unhold();
                     },
                     mGeneralData.isProxyEnabled()));
         }
+    }
+
+    private void appendConscrypt(AppDialogPresenter settingsPresenter, List<OptionItem> options) {
+        options.add(UiOptionItem.from(getContext().getString(R.string.enable_conscrypt),
+                getContext().getString(R.string.enable_conscrypt_desc),
+                option -> {
+                    mNetworkData.setConscryptEnabled(option.isSelected());
+                    mRestartApp = true;
+                },
+                mNetworkData.isConscryptEnabled()));
     }
 
     private void enableChildMode(boolean enable) {
@@ -760,6 +780,7 @@ public class GeneralSettingsPresenter extends BasePresenter<Void> {
         menuNames.put(MainUIData.MENU_ITEM_SAVE_REMOVE_PLAYLIST, R.string.save_remove_playlist);
         menuNames.put(MainUIData.MENU_ITEM_CREATE_PLAYLIST, R.string.create_playlist);
         menuNames.put(MainUIData.MENU_ITEM_RENAME_PLAYLIST, R.string.rename_playlist);
+        menuNames.put(MainUIData.MENU_ITEM_ADD_TO_WATCH_LATER, R.string.add_video_to_watch_later);
         menuNames.put(MainUIData.MENU_ITEM_ADD_TO_NEW_PLAYLIST, R.string.add_video_to_new_playlist);
         menuNames.put(MainUIData.MENU_ITEM_ADD_TO_PLAYLIST, R.string.dialog_add_to_playlist);
         menuNames.put(MainUIData.MENU_ITEM_RECENT_PLAYLIST, R.string.add_remove_from_recent_playlist);

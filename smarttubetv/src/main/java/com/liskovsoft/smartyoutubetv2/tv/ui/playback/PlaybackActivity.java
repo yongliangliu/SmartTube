@@ -196,8 +196,9 @@ public class PlaybackActivity extends LeanbackActivity {
 
     @Override
     public void finishReally() {
-        mPlaybackFragment.onFinish();
         super.finishReally();
+
+        mPlaybackFragment.onFinish();
     }
 
     @Override

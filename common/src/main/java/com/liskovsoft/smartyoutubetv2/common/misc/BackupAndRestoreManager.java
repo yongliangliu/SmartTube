@@ -14,6 +14,7 @@ import com.liskovsoft.sharedutils.helpers.PermissionHelpers;
 import com.liskovsoft.sharedutils.mylogger.Log;
 import com.liskovsoft.sharedutils.rx.RxHelper;
 import com.liskovsoft.smartyoutubetv2.common.R;
+import com.liskovsoft.smartyoutubetv2.common.prefs.GeneralData;
 import com.liskovsoft.smartyoutubetv2.common.prefs.HiddenPrefs;
 import com.liskovsoft.smartyoutubetv2.common.utils.Utils;
 
@@ -29,7 +30,9 @@ public class BackupAndRestoreManager implements MotherActivity.OnPermissions {
     private static final String BACKUP_DIR_NAME = "Backup";
     private final Context mContext;
     private static final String SHARED_PREFS_SUBDIR = "shared_prefs";
+    private static final String FILES_SUBDIR = "files";
     private final File mSharedPrefsDir;
+    private final File mFilesDir;
     private final List<File> mBackupDirs;
     private final BackupAndRestoreHelper mHelper;
     private final boolean mForceApi30;
@@ -51,6 +54,7 @@ public class BackupAndRestoreManager implements MotherActivity.OnPermissions {
         mHelper = new BackupAndRestoreHelper(context);
 
         mSharedPrefsDir = new File(mContext.getApplicationInfo().dataDir, SHARED_PREFS_SUBDIR);
+        mFilesDir = FileHelpers.getFilesDir(context);
 
         mBackupDirs = new ArrayList<>();
     }
@@ -145,22 +149,29 @@ public class BackupAndRestoreManager implements MotherActivity.OnPermissions {
             return;
         }
 
-        if (hasAccessOnlyToAppFolders()) {
-            File mediaDir = FileHelpers.getExternalMediaDirectory(mContext);
-            File dataDir = new File(mediaDir, "data");
-            FileHelpers.delete(dataDir);
-        } else if (currentBackup.isDirectory()) { // plain sdcard storage
-            // remove old backup <app_id>/Backup
-            FileHelpers.delete(currentBackup);
-        }
+        //if (hasAccessOnlyToAppFolders()) {
+        //    File mediaDir = FileHelpers.getExternalMediaDirectory(mContext);
+        //    File dataDir = new File(mediaDir, "data");
+        //    FileHelpers.delete(dataDir);
+        //} else if (currentBackup.isDirectory()) { // plain sdcard storage
+        //    // remove old backup <app_id>/Backup
+        //    FileHelpers.delete(currentBackup);
+        //}
+        //
+        //if (mSharedPrefsDir.isDirectory() && !FileHelpers.isEmpty(mSharedPrefsDir)) {
+        //    File destination = new File(currentBackup, mSharedPrefsDir.getName());
+        //    FileHelpers.copy(mSharedPrefsDir, destination, fileName -> Helpers.endsWithAny(fileName.toString(), Utils.BACKUP_PATTERNS), null);
+        //
+        //    // Don't store unique id
+        //    FileHelpers.delete(new File(destination, HiddenPrefs.SHARED_PREFERENCES_NAME + ".xml"));
+        //}
+        //
+        //if (mFilesDir.isDirectory() && !FileHelpers.isEmpty(mFilesDir)) {
+        //    File destination = new File(currentBackup, mFilesDir.getName());
+        //    FileHelpers.copy(mFilesDir, destination, null, fileName -> Helpers.endsWithAny(fileName.toString(), Utils.BACKUP_DIR_PATTERNS));
+        //}
 
-        if (mSharedPrefsDir.isDirectory() && !FileHelpers.isEmpty(mSharedPrefsDir)) {
-            File destination = new File(currentBackup, mSharedPrefsDir.getName());
-            FileHelpers.copy(mSharedPrefsDir, destination, fileName -> Helpers.endsWithAny(fileName.toString(), Utils.BACKUP_PATTERNS));
-
-            // Don't store unique id
-            FileHelpers.delete(new File(destination, HiddenPrefs.SHARED_PREFERENCES_NAME + ".xml"));
-        }
+        backupToDir(currentBackup);
 
         if (hasAccessOnlyToAppFolders()) {
             mHelper.exportAppMediaFolder();
@@ -170,13 +181,34 @@ public class BackupAndRestoreManager implements MotherActivity.OnPermissions {
         }
     }
 
+    public void backupToDir(File target) {
+        if (target.isDirectory()) { // plain sdcard storage
+            // remove old backup <app_id>/Backup
+            FileHelpers.delete(target);
+        }
+
+        if (mSharedPrefsDir.isDirectory() && !FileHelpers.isEmpty(mSharedPrefsDir)) {
+            File destination = new File(target, mSharedPrefsDir.getName());
+            FileHelpers.copy(mSharedPrefsDir, destination, file -> Helpers.endsWithAny(file.getName(), Utils.BACKUP_PREFS), null);
+
+            // Don't store unique id
+            FileHelpers.delete(new File(destination, HiddenPrefs.SHARED_PREFERENCES_NAME + ".xml"));
+        }
+
+        if (mFilesDir.isDirectory() && !FileHelpers.isEmpty(mFilesDir)) {
+            File destination = new File(target, mFilesDir.getName());
+            FileHelpers.copy(mFilesDir, destination, null, dir -> Helpers.equalsAny(dir.getName(), Utils.BACKUP_DIRS));
+        }
+    }
+
     private void restoreData(String backupName) {
         Log.d(TAG, "App just updated. Restoring data...");
 
         File currentBackup = getBackupCheck(backupName);
-        File sourceBackupDir = new File(currentBackup, SHARED_PREFS_SUBDIR);
+        File sharedPrefsBackupDir = new File(currentBackup, SHARED_PREFS_SUBDIR);
+        File filesBackupDir = new File(currentBackup, FILES_SUBDIR);
 
-        if (FileHelpers.isEmpty(sourceBackupDir)) {
+        if (FileHelpers.isEmpty(sharedPrefsBackupDir)) {
             Log.d(TAG, "Oops. Backup folder is empty.");
             MessageHelpers.showLongMessage(mContext, "Oops. Backup folder is empty.");
             return;
@@ -187,7 +219,8 @@ public class BackupAndRestoreManager implements MotherActivity.OnPermissions {
             FileHelpers.delete(mSharedPrefsDir);
         }
 
-        FileHelpers.copy(sourceBackupDir, mSharedPrefsDir, fileName -> Helpers.endsWithAny(fileName.toString(), Utils.BACKUP_PATTERNS));
+        FileHelpers.copy(sharedPrefsBackupDir, mSharedPrefsDir);
+        FileHelpers.copy(filesBackupDir, mFilesDir);
         fixFileNames(mSharedPrefsDir);
 
         MessageHelpers.showMessage(mContext, R.string.msg_done);
@@ -279,14 +312,21 @@ public class BackupAndRestoreManager implements MotherActivity.OnPermissions {
     public String getBackupRootPath() {
         // NOTE: Android 11+ only backup through the file manager (no shared dir)
         if (hasAccessOnlyToAppFolders() && VERSION.SDK_INT > 29) {
+            String backupZipName = GeneralData.instance(mContext).getBackupZipName();
+            backupZipName = backupZipName != null ? "/" + backupZipName : "";
             return Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS).getAbsolutePath()
-                    + "/" + BackupAndRestoreHelper.BACKUP_FOLDER_NAME;
+                    + "/" + BackupAndRestoreHelper.BACKUP_FOLDER_NAME + backupZipName;
         }
 
         return getRestoreRootPath();
     }
 
     public String getRestoreRootPath() {
+        // NOTE: Android 11+ only restore through the file manager (no shared dir)
+        if (hasAccessOnlyToAppFolders()) {
+            return getExternalStorageDirectory().toString();
+        }
+
         return String.format("%s/data", getExternalStorageDirectory());
     }
 

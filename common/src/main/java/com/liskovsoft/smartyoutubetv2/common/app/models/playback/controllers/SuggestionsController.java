@@ -220,13 +220,7 @@ public class SuggestionsController extends BasePlayerController {
     }
 
     private void syncCurrentVideo(MediaItemMetadata mediaItemMetadata, Video video) {
-        //if (getPlayer().containsMedia()) {
-        //    video.isUpcoming = false; // live stream started
-        //}
-
-        // NOTE: Skip upcoming or unplayable (no media) because default title more informative (e.g. has scheduled time).
-        // NOTE: Upcoming videos metadata wrongly reported as live
-        if (!getPlayer().containsMedia()) {
+        if (getPlayer() == null) {
             return;
         }
 
@@ -285,12 +279,11 @@ public class SuggestionsController extends BasePlayerController {
 
         Video result = null;
         Video next = Playlist.instance().getNext();
-        boolean isShuffle = getPlayerData().getPlaybackMode() == PlayerConstants.PLAYBACK_MODE_SHUFFLE && getVideo().nextMediaItem != null;
 
         if (next != null) {
             next.fromQueue = true;
             result = next;
-        } else if (mNextSectionVideo != null && !isShuffle) {
+        } else if (mNextSectionVideo != null && !getVideo().isShuffled) {
             result = mNextSectionVideo;
         } else if (getVideo().nextMediaItem != null) {
             result = Video.from(getVideo().nextMediaItem);
@@ -691,14 +684,20 @@ public class SuggestionsController extends BasePlayerController {
     }
 
     private void findNextSectionVideoIfNeeded(Video video) {
-        if (getPlayerData().getPlaybackMode() == PlayerConstants.PLAYBACK_MODE_SHUFFLE) {
-            findRandomSectionVideo(video);
-        } else {
-            findNextSectionVideo(video);
-        }
+        //if (getPlayerData().getPlaybackMode() == PlayerConstants.PLAYBACK_MODE_SHUFFLE) {
+        //    findRandomSectionVideo(video);
+        //} else {
+        //    findNextSectionVideo(video);
+        //}
+
+        findNextSectionVideo(video);
     }
 
     private void findRandomSectionVideo(Video video) {
+        if (getPlayer() == null) {
+            return;
+        }
+
         mNextSectionVideo = null;
 
         VideoGroup group = video.getGroup();
@@ -716,6 +715,10 @@ public class SuggestionsController extends BasePlayerController {
     }
 
     private void findNextSectionVideo(Video video) {
+        if (getPlayer() == null) {
+            return;
+        }
+
         mNextSectionVideo = null;
 
         VideoGroup group = video.getGroup();

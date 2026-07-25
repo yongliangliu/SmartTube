@@ -394,8 +394,8 @@
     <string name="audio_sync_fix">Виправлення розсинхронізації звуку</string>
     <string name="ambilight_ratio_fix_desc">Виправляє відсутнє фонове підсвічування. Виправляє невірне співвідношення сторін або масштаб відео. Виправляє порожні скріншоти. Впливає на продуктивність пристрою!</string>
     <string name="ambilight_ratio_fix">Виправлення Ambilight, співвідношення сторін, масштабу відео та скріншотів</string>
-    <string name="force_legacy_codecs_desc">Значно покращує продуктивність на слабких пристроях. Максимальна роздільна здатність 720p.</string>
-    <string name="force_legacy_codecs">Використовувати застарілі кодеки (720p)</string>
+    <string name="force_legacy_codecs_desc">Значно покращує продуктивність на слабких пристроях. Максимальна роздільна здатність 360p.</string>
+    <string name="force_legacy_codecs">Використовувати застарілі кодеки (360p)</string>
     <string name="live_stream_fix_desc">Увага: перемотування прямих трансляцій буде недоступним. Значно покращує продуктивність трансляцій на слабких пристроях. Максимальна роздільна здатність 1080p.</string>
     <string name="live_stream_fix_4k_desc">Увага: перемотування прямих трансляцій буде недоступним. Значно покращує продуктивність трансляцій. Максимальна роздільна здатність 4K.</string>
     <string name="live_stream_fix">Виправлення прямих трансляцій (1080p)</string>
@@ -643,7 +643,7 @@
     <string name="hide_watched_from_notifications">Приховати переглянуті відео з Повідомлень</string>
     <string name="hide_unwanted_content">Приховати вміст</string>
     <string name="hide_watched_from_home">Приховати переглянуті відео з Головного розділу</string>
-    <string name="hide_watched_from_watch_later">Приховати переглянуті відео зі списку Переглянути пізніше</string>
+    <string name="hide_watched_from_watch_later">Видаляти переглянуті відео зі списку Переглянути пізніше</string>
     <string name="remote_control_permission">Фонове Дистанційне керування вимагає дозволу на Перекривання інших вікон</string>
     <string name="login_from_browser">Увійти з браузера</string>
     <string name="disable_remote_history">Вимкнути історію під час дистанційного керування</string>
@@ -727,6 +727,14 @@
     <string name="ignore_short_segments">Ігнорувати короткі сегменти</string>
     <string name="local_backup_not_supported">Автобекап на Android TV 11+ не підтримується через обмеження системи. Використовуйте GDrive.</string>
     <string name="rounded_card_corners">Заокруглені кути карток</string>
+    <string name="app_restore_desc">УВАГА: ZIP-бекап потрібно вручну скопіювати в цю папку або через файловий менеджер, використовуючи \'Відкрити за допомогою\'</string>
+    <string name="app_backup_desc">УВАГА: Резервна копія буде створена у форматі zip</string>
+    <string name="add_video_to_watch_later">Додати до \'Переглянути пізніше\'</string>
+    <string name="remove_video_to_watch_later">Видалити з \'Переглянути пізніше\'</string>
+    <string name="enable_conscrypt">Увімкнути Conscrypt</string>
+    <string name="enable_conscrypt_desc">Покращує сумісність HTTPS, TLS і VPN на деяких пристроях, але іноді може спричиняти проблеми з відтворенням або сповільнення мережі</string>
+    <string name="network_settings">Налаштування мережі</string>
+    <string name="comments_disabled">Коментарі вимкнено для цього відео</string>
     <plurals name="hours">
         <item quantity="one">%s година</item>
         <item quantity="few">%s години</item>

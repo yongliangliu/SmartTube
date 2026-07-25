@@ -4,6 +4,7 @@ import android.annotation.SuppressLint;
 import android.content.Context;
 
 import com.liskovsoft.mediaserviceinterfaces.data.MediaGroup;
+import com.liskovsoft.sharedutils.helpers.Helpers;
 import com.liskovsoft.sharedutils.helpers.MessageHelpers;
 import com.liskovsoft.smartyoutubetv2.common.R;
 import com.liskovsoft.smartyoutubetv2.common.app.models.playback.ui.OptionItem;
@@ -47,8 +48,12 @@ public class BackupSettingsPresenter extends BasePresenter<Void> {
         return sInstance;
     }
 
-    public void unhold() {
+    public static void unhold() {
         sInstance = null;
+    }
+
+    public static boolean hasInstance() {
+        return sInstance != null;
     }
 
     public void show() {
@@ -67,7 +72,7 @@ public class BackupSettingsPresenter extends BasePresenter<Void> {
         appendLocalBackupCategory(settingsPresenter);
         appendGDriveBackupCategory(settingsPresenter);
         appendSubscriptionsBackupButton(settingsPresenter);
-        settingsPresenter.showDialog(getContext().getString(R.string.app_backup_restore), this::unhold);
+        settingsPresenter.showDialog(getContext().getString(R.string.app_backup_restore), BackupSettingsPresenter::unhold);
     }
 
     private void appendGDriveBackupCategory(AppDialogPresenter settingsPresenter) {
@@ -177,10 +182,12 @@ public class BackupSettingsPresenter extends BasePresenter<Void> {
 
         String backupPath = backupManager.getBackupRootPath();
         String restorePath = backupManager.getRestoreRootPath();
+        boolean hasFullStorageAccess = Helpers.equals(backupPath, restorePath);
 
         options.add(UiOptionItem.from(
                 backupPath == null ? getContext().getString(R.string.app_backup) :
                     String.format("%s:\n%s", getContext().getString(R.string.app_backup), backupPath),
+                hasFullStorageAccess ? null : getContext().getString(R.string.app_backup_desc),
                 option -> {
                     AppDialogUtil.showConfirmationDialog(getContext(), getContext().getString(R.string.app_backup), () -> {
                         mSidebarService.enableSection(MediaGroup.TYPE_SETTINGS, true); // prevent Settings lock
@@ -192,6 +199,7 @@ public class BackupSettingsPresenter extends BasePresenter<Void> {
         options.add(UiOptionItem.from(
                 backupPath == null ? getContext().getString(R.string.app_restore) :
                     String.format("%s:\n%s", getContext().getString(R.string.app_restore), restorePath),
+                hasFullStorageAccess ? null : getContext().getString(R.string.app_restore_desc),
                 option -> {
                     backupManager.getBackupNames(names -> showLocalRestoreDialog(backupManager, names));
                 }));

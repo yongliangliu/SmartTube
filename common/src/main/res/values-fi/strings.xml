@@ -695,7 +695,7 @@
   <string name="card_preview">Korttien esikatselu</string>
   <string name="card_preview_full">Videon esikatselu äänellä</string>
   <string name="card_preview_muted">Videon esikatselu ilman ääntä</string>
-  <string name="oculus_quest_fix">Oculus Questin korjaus</string>
+  <string name="oculus_quest_fix">Oculus Quest korjaus</string>
   <string name="playback_buffering_fix">Toiston puskuroinnin korjaaminen</string>
   <string name="premium_users_only">Vain Youtube Premium-käyttäjille. Korjaa epätäydellinen videoformaattiluettelo</string>
   <string name="card_unlocalized_titles">Älä suomenna videoiden otsikoita</string>
@@ -736,4 +736,14 @@
   <string name="player_unexpected_error">Odottamaton toistovirhe</string>
   <string name="color_scheme_dark_blue_oled">Tummansininen OLED</string>
   <string name="prefer_google_dns">Suosi Googlen DNS:ää</string>
+  <string name="sidebar_notification">Näytä ilmoitus sivupalkissa</string>
+  <string name="player_chapter_notification2">Siirry seuraavaan lukuun napsauttamalla ilmoitusta</string>
+  <string name="app_restore_desc">Varmuuskopiotiedosto zip tulee kopioida tähän kansioon manuaalisesti tai tiedostonhallinnassa käyttämällä \'Avaa sovelluksella\' -toimintoa.</string>
+  <string name="app_backup_desc">Varmuuskopio luodaan zip-muodossa</string>
+  <string name="remove_from_search_history">Poista hakuhistoriasta</string>
+  <string name="add_video_to_watch_later">Lisää katsottavaksi myöhemmin</string>
+  <string name="enable_conscrypt_desc">Parantaa HTTPS-, TLS- ja VPN-yhteensopivuutta joillakin laitteilla mutta saattaa toisinaan aiheuttaa toisto-ongelmia tai hitaampaa verkon suorituskykyä</string>
+  <string name="network_settings">Verkkoasetukset</string>
+  <string name="comments_disabled">Kommentit on poistettu käytöstä tässä videossa</string>
+  <string name="enable_conscrypt">Ota Conscrypt käyttöön</string>
 </resources>

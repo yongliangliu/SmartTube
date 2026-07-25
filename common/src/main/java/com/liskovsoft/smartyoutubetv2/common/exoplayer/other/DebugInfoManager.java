@@ -37,6 +37,7 @@ import com.liskovsoft.smartyoutubetv2.common.autoframerate.internal.UhdHelper;
 import com.liskovsoft.smartyoutubetv2.common.exoplayer.versions.ExoUtils;
 import com.liskovsoft.smartyoutubetv2.common.misc.MediaServiceManager;
 import com.liskovsoft.smartyoutubetv2.common.prefs.AppPrefs;
+import com.liskovsoft.smartyoutubetv2.common.prefs.PlayerData;
 import com.liskovsoft.smartyoutubetv2.common.prefs.PlayerTweaksData;
 import com.liskovsoft.smartyoutubetv2.common.utils.Utils;
 import com.liskovsoft.youtubeapi.app.models.AppInfo;
@@ -62,6 +63,7 @@ public final class DebugInfoManager implements Runnable, Player.EventListener {
 
     private final SimpleExoPlayer mPlayer;
     private final ViewGroup mDebugViewGroup;
+    private final ExoPlayerInitializer mPlayerInitializer;
     private final Context mContext;
 
     private boolean mStarted;
@@ -76,11 +78,13 @@ public final class DebugInfoManager implements Runnable, Player.EventListener {
     /**
      * @param debugViewGroup The container that should be updated to display the information.
      * @param player      The {@link SimpleExoPlayer} from which debug information should be obtained.
+     * @param playerInitializer The {@link ExoPlayerInitializer} from which debug information should be obtained.
      */
-    public DebugInfoManager(ViewGroup debugViewGroup, SimpleExoPlayer player) {
+    public DebugInfoManager(ViewGroup debugViewGroup, SimpleExoPlayer player, ExoPlayerInitializer playerInitializer) {
         mContext = debugViewGroup.getContext();
         mDebugViewGroup = debugViewGroup;
         mPlayer = player;
+        mPlayerInitializer = playerInitializer;
         mTextSize = mContext.getResources().getDimension(R.dimen.debug_text_size);
         mAppVersion = String.format("%s version", mContext.getString(R.string.app_name));
         inflate();
@@ -292,26 +296,29 @@ public final class DebugInfoManager implements Runnable, Player.EventListener {
     private void appendPlayerState() {
         //appendRow("Player paused", !mPlayer.getPlayWhenReady());
 
-        String text;
+        String state;
         switch (mPlayer.getPlaybackState()) {
             case Player.STATE_BUFFERING:
-                text = "buffering";
+                state = "buffering";
                 break;
             case Player.STATE_ENDED:
-                text = "ended";
+                state = "ended";
                 break;
             case Player.STATE_IDLE:
-                text = "idle";
+                state = "idle";
                 break;
             case Player.STATE_READY:
-                text = "ready";
+                state = "ready";
                 break;
             default:
-                text = "unknown";
+                state = "unknown";
                 break;
         }
-        //appendRow("Playback state", text);
-        appendRow("Playback state", String.format("paused=%s;state=%s", !mPlayer.getPlayWhenReady(), text));
+        //appendRow("Playback state", state);
+        float boost = mPlayerInitializer.getVolumeBoost();
+        appendRow("Playback info", String.format("paused=%s;state=%s", !mPlayer.getPlayWhenReady(), state));
+        appendRow("Volume",
+                String.format("original=%s;normalized=%s", PlayerData.instance(mContext).getPlayerVolume(), Helpers.formatFloat(boost * mPlayer.getVolume())));
     }
 
     private void appendDisplayModeId() {
@@ -361,9 +368,10 @@ public final class DebugInfoManager implements Runnable, Player.EventListener {
 
     private void appendVersion() {
         //appendRow("ExoPlayer version", ExoPlayerLibraryInfo.VERSION);
+        PlayerTweaksData playerTweaksData = PlayerTweaksData.instance(mContext);
         appendRow("ExoPlayer engine",
-                PlayerTweaksData.instance(mContext).getPlayerDataSource() == PlayerTweaksData.PLAYER_DATA_SOURCE_OKHTTP ? "OkHttp" :
-                        PlayerTweaksData.instance(mContext).getPlayerDataSource() == PlayerTweaksData.PLAYER_DATA_SOURCE_CRONET
+                playerTweaksData.getPlayerDataSource() == PlayerTweaksData.PLAYER_DATA_SOURCE_OKHTTP ? "OkHttp" :
+                        playerTweaksData.getPlayerDataSource() == PlayerTweaksData.PLAYER_DATA_SOURCE_CRONET
                                 && CronetManager.getEngine(mContext) != null ? "Cronet" : "Default");
         //appendRow("Cronet version", ApiVersion.getCronetVersion());
         //appendRow("OkHttp version", Version.userAgent());
@@ -374,7 +382,7 @@ public final class DebugInfoManager implements Runnable, Player.EventListener {
         appendRow("Device name", Helpers.getDeviceName());
         appendRow("Android SDK", VERSION.SDK_INT);
         appendRow("Disk cache size (MB)", String.valueOf(
-                (FileHelpers.getDirSize(FileHelpers.getInternalCacheDir(mContext)) + FileHelpers.getDirSize(FileHelpers.getExternalCacheDir(mContext)))
+                (FileHelpers.getDirSize(FileHelpers.getCacheDir(mContext)) + FileHelpers.getDirSize(FileHelpers.getExternalCacheDir(mContext)))
                         / 1024 / 1024
         ));
     }

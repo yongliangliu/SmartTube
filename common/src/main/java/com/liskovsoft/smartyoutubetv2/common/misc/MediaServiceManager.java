@@ -403,11 +403,15 @@ public class MediaServiceManager implements OnAccountChange {
         RxHelper.execute(mNotificationsService.setNotificationStateObserve(state), onError::onError);
     }
 
-    public void removeFromWatchLaterPlaylist(Video video) {
-        removeFromWatchLaterPlaylist(video, null);
+    public void addToWatchLaterPlaylist(Video video) {
+        addRemoveFromWatchLaterPlaylist(video, true);
     }
 
-    public void removeFromWatchLaterPlaylist(Video video, Runnable onSuccess) {
+    public void removeFromWatchLaterPlaylist(Video video) {
+        addRemoveFromWatchLaterPlaylist(video, false);
+    }
+
+    public void addRemoveFromWatchLaterPlaylist(Video video, boolean isAdd) {
         if (video == null || !mSignInService.isSigned()) {
             return;
         }
@@ -417,15 +421,15 @@ public class MediaServiceManager implements OnAccountChange {
                         videoPlaylistInfos -> {
                             PlaylistInfo watchLater = videoPlaylistInfos.get(0);
 
-                            if (watchLater.isSelected()) {
-                                Observable<Void> editObserve = mItemService.removeFromPlaylistObserve(watchLater.getPlaylistId(), video.videoId);
+                            // BUG: YT not marked Watch later as selected
+                            //if (watchLater.isSelected() == isAdd) {
+                            //    return;
+                            //}
 
-                                RxHelper.execute(editObserve, () -> {
-                                    if (onSuccess != null) {
-                                        onSuccess.run();
-                                    }
-                                });
-                            }
+                            Observable<Void> editObserve = isAdd ? mItemService.addToPlaylistObserve(watchLater.getPlaylistId(), video.videoId)
+                                   : mItemService.removeFromPlaylistObserve(watchLater.getPlaylistId(), video.videoId);
+
+                            RxHelper.execute(editObserve);
                         },
                         error -> {
                             // Fallback to something on error

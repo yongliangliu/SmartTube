@@ -132,6 +132,10 @@ public class PlaybackFragment extends SeekModePlaybackFragment implements Playba
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(null); // trying to fix bug with presets
 
+        if (getContext() == null) {
+            throw new IllegalStateException("Can't create PlaybackFragment: the context is null");
+        }
+
         mSelectedVideoId = savedInstanceState != null ? savedInstanceState.getString(SELECTED_VIDEO_ID, null) : null;
         mVideoGroupAdapters = new HashMap<>();
         mBackgroundManager = getLeanbackActivity().getBackgroundManager();
@@ -567,7 +571,7 @@ public class PlaybackFragment extends SeekModePlaybackFragment implements Playba
         }
 
         if (mDebugInfoManager == null) {
-            mDebugInfoManager = new DebugInfoManager(getView().findViewById(R.id.debug_view_group), mPlayer);
+            mDebugInfoManager = new DebugInfoManager(getView().findViewById(R.id.debug_view_group), mPlayer, mPlayerInitializer);
         }
     }
 

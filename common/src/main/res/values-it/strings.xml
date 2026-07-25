@@ -566,7 +566,8 @@
     <string name="sort_by_date">Data di caricamento</string>
     <string name="sort_by_rating">Valutazione</string>
     <string name="clear_search_history">Cancella la Cronologia delle ricerche</string>
-    <string name="remove_from_subscriptions">Nascondi</string>
+    <string name="remove_from_search_history">Rimuovi dalla  Cronologia delle ricerche</string>
+	<string name="remove_from_subscriptions">Nascondi</string>
     <string name="player_long_speed_list">Più velocità nell\'elenco delle velocità</string>
     <string name="player_extra_long_speed_list">Ancora più velocità nell\'elenco delle velocità</string>
     <string name="alt_app_icon">Icona alternativa dell\'app (è necessario riavviare)</string>
@@ -740,6 +741,13 @@
     <string name="fix_empty_subs_and_channels">Correggi Iscrizioni e canali vuoti</string>
     <string name="local_backup_not_supported">Il backup automatico su Android TV 11 non è supportato a causa di restrizioni di sistema. Usa invece GDrive.</string>
     <string name="rounded_card_corners">Angoli delle cartoline arrotondati</string>
+    <string name="app_restore_desc">NOTA: Lo zip di backup dovrebbe essere copiato in questa cartella manualmente o tramite un gestore file, usa \'Apri con\'</string>
+    <string name="app_backup_desc">NOTA: Il backup sarà creato in formato zip</string>
+    <string name="add_video_to_watch_later">Aggiungi a Guarda più tardi</string>
+    <string name="enable_conscrypt">Abilita Conscrypt</string>
+    <string name="enable_conscrypt_desc">Migliora la compatibilità con HTTPS, TLS e VPN su alcuni dispositivi, ma può causare occasionalmente problemi di riproduzione o prestazioni di rete inferiori</string>
+    <string name="network_settings">Impostazioni di rete</string>
+    <string name="comments_disabled">I commenti sono disabilitati per questo video</string>
     <plurals name="hours">
         <item quantity="one">%s ora</item>
         <item quantity="other">%s ore</item>

@@ -86,6 +86,7 @@ public final class Video {
     public long startTimeMs;
     public long pendingPosMs;
     public boolean fromQueue;
+    public boolean fromCrashRestorer;
     public boolean isPending;
     public boolean finishOnEnded;
     public boolean incognito;
@@ -95,6 +96,7 @@ public final class Video {
     public float volume = 1.0f;
     public boolean deArrowProcessed;
     public boolean isLiveEnd;
+    public boolean isShuffled;
     public String searchQuery;
     private int startSegmentNum;
     private long liveDurationMs = -1;
@@ -334,11 +336,11 @@ public final class Video {
         return getGroup() != null && !getGroup().isEmpty() ? getGroup().getVideos().indexOf(this) : -1;
     }
 
-    private static String extractAuthor(CharSequence secondTitle) {
+    private String extractAuthor(CharSequence secondTitle) {
         return extractAuthor(Helpers.toString(secondTitle));
     }
 
-    private static String extractAuthor(String secondTitle) {
+    private String extractAuthor(String secondTitle) {
         String result = null;
 
         if (secondTitle != null) {
@@ -355,9 +357,8 @@ public final class Video {
             }
         }
 
-        // Skip subtitles starting with number of views (e.g. 1.4M views)
-        //return !TextUtils.isEmpty(result) && !Helpers.isNumeric(result.substring(0, 1)) ? Helpers.abbreviate(result.trim(), MAX_AUTHOR_LENGTH_CHARS) : null;
-        return !TextUtils.isEmpty(result) && !Helpers.isNumeric(result.substring(0, 1)) ? result.trim() : null;
+        // Skip subtitles starting with number of views (e.g. 1.4M views). Usually found in channel uploads.
+        return !TextUtils.isEmpty(result) && (!belongsToChannelUploads() || !Helpers.isNumeric(result.substring(0, 1))) ? result.trim() : null;
     }
 
     public static List<Video> findVideosByAuthor(VideoGroup group, String author) {
@@ -567,7 +568,14 @@ public final class Video {
         }
 
         // NOTE: Movies labeled as "Free with Ads" not supported yet
-        return Helpers.allNulls(videoId, playlistId, reloadPageKey, playlistParams, channelId, searchQuery) || isMovie;
+        return Helpers.allNulls(videoId, playlistId, reloadPageKey, playlistParams, channelId, searchQuery) || isMovie || isMembersOnly();
+    }
+
+    /**
+     * Members only videos appears as videos with a length badge but has only a channel id
+     */
+    private boolean isMembersOnly() {
+        return videoId == null && durationMs > 0;
     }
 
     public String getGroupTitle() {
@@ -737,11 +745,13 @@ public final class Video {
 
         // NOTE: Skip upcoming (no media) because default title more informative (e.g. has scheduled time).
         // NOTE: Upcoming videos metadata wrongly reported as live
-        metadataTitle = metadata.getTitle();
+        if (metadataTitle == null) {
+            metadataTitle = metadata.getTitle();
+        }
         metadataSecondTitle = metadata.getSecondTitle();
         // NOTE: Upcoming videos metadata wrongly reported as live (live == true, upcoming == false)
-        isLive = metadata.isLive();
-        isUpcoming = metadata.isUpcoming();
+        //isLive = metadata.isLive();
+        //isUpcoming = metadata.isUpcoming();
 
         // No checks. This data wasn't existed before sync.
         if (metadata.getDescription() != null) {
@@ -758,16 +768,21 @@ public final class Video {
         notificationStates = metadata.getNotificationStates();
         author = metadata.getAuthor();
         durationMs = metadata.getDurationMs();
-        isSynced = true;
         mediaItem = toMediaItem(); // Fix subscribe during playback (see PlayerUIController.callMediaItemObservable)
+        isSynced = true;
     }
 
     public void sync(MediaItemFormatInfo formatInfo) {
         if (formatInfo == null) {
             return;
         }
-        
+
+        metadataTitle = formatInfo.getPlayabilityReason(); // null if has media formats
+
         isLive = formatInfo.isLive();
+        if (isLive) {
+            isUpcoming = false;
+        }
 
         if (description == null) {
             description = formatInfo.getDescription();
@@ -911,7 +926,7 @@ public final class Video {
     }
 
     public void sync(VideoStateService.State state) {
-        if (state != null) {
+        if (state != null && state.durationMs != -1) {
             percentWatched = state.positionMs / (state.durationMs / 100f);
         }
     }
