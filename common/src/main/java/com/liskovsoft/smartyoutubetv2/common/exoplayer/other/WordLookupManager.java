@@ -649,6 +649,9 @@ public class WordLookupManager {
     }
 
     private void showResultCard(String word, String sentence, JSONObject json) {
+        // the word just became "known": repaint the subtitle right away (yellow glyphs)
+        renderHighlight();
+
         SpannableStringBuilder title = new SpannableStringBuilder(word);
         String phonetic = json.optString("phonetic", "");
         if (!phonetic.isEmpty()) {

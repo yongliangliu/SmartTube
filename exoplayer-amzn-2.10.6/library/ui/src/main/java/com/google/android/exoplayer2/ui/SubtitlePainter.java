@@ -33,6 +33,7 @@ import android.text.TextPaint;
 import android.text.TextUtils;
 import android.text.style.AbsoluteSizeSpan;
 import android.text.style.BackgroundColorSpan;
+import android.text.style.ForegroundColorSpan;
 import android.text.style.RelativeSizeSpan;
 import android.util.DisplayMetrics;
 import com.google.android.exoplayer2.text.CaptionStyleCompat;
@@ -96,6 +97,7 @@ import com.liskovsoft.sharedutils.misc.RoundedBackgroundSpan;
 
   // Derived drawing variables.
   private StaticLayout textLayout;
+  private StaticLayout edgeLayout; // MOD: outline pass copy without ForegroundColorSpan
   private int textLeft;
   private int textTop;
   private int textPaddingX;
@@ -358,6 +360,22 @@ import com.liskovsoft.sharedutils.misc.RoundedBackgroundSpan;
     // Update the derived drawing variables.
     this.textLayout = new StaticLayout(cueText, textPaint, textWidth, textAlignment, spacingMult,
         spacingAdd, true);
+    // MOD: the outline pass must ignore per-word ForegroundColorSpan, otherwise colored
+    // words get a colored stroke (looks like a thick border). Build a copy without them.
+    StaticLayout edge = null;
+    if (edgeType == CaptionStyleCompat.EDGE_TYPE_OUTLINE && cueText instanceof Spanned) {
+      Spanned spanned = (Spanned) cueText;
+      ForegroundColorSpan[] fgSpans = spanned.getSpans(0, spanned.length(), ForegroundColorSpan.class);
+      if (fgSpans.length > 0) {
+        SpannableStringBuilder edgeText = new SpannableStringBuilder(cueText);
+        for (ForegroundColorSpan fgSpan : fgSpans) {
+          edgeText.removeSpan(fgSpan);
+        }
+        edge = new StaticLayout(edgeText, textPaint, textWidth, textAlignment, spacingMult,
+            spacingAdd, true);
+      }
+    }
+    this.edgeLayout = edge;
     this.textLeft = textLeft;
     this.textTop = textTop;
     this.textPaddingX = textPaddingX;
@@ -413,7 +431,8 @@ import com.liskovsoft.sharedutils.misc.RoundedBackgroundSpan;
       textPaint.setStrokeWidth(outlineWidth);
       textPaint.setColor(edgeColor);
       textPaint.setStyle(Style.FILL_AND_STROKE);
-      layout.draw(canvas);
+      // MOD: draw the outline from the layout without ForegroundColorSpan (uniform edge color)
+      (edgeLayout != null ? edgeLayout : layout).draw(canvas);
     } else if (edgeType == CaptionStyleCompat.EDGE_TYPE_DROP_SHADOW) {
       textPaint.setShadowLayer(shadowRadius, shadowOffset, shadowOffset, edgeColor);
     } else if (edgeType == CaptionStyleCompat.EDGE_TYPE_RAISED
