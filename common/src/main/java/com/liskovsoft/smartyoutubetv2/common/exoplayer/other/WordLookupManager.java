@@ -67,8 +67,7 @@ public class WordLookupManager {
     private static final String KV_BASE = "https://kvdata.liuyongliang123.workers.dev/api/st_words";
     private static final String KV_TOKEN = "1376464";
     private static final MediaType JSON_TYPE = MediaType.parse("application/json; charset=utf-8");
-    private static final int HIGHLIGHT_BG = 0xFFFFEB3B; // yellow: currently selected word
-    private static final int HIGHLIGHT_FG = Color.BLACK;
+    private static final int CURSOR_BG = 0x59FFFFFF; // translucent light box: selection cursor
     private static final int KNOWN_WORD_FG = 0xFFFFEB3B; // yellow: already looked up words
     private static final Pattern WORD_PATTERN = Pattern.compile("[\\p{L}\\p{N}][\\p{L}\\p{N}'’-]*");
     private static final int AUTO_CLOSE_MS = 8000;
@@ -186,9 +185,8 @@ public class WordLookupManager {
                 if (sb == null) {
                     sb = new SpannableStringBuilder(plain);
                 }
-                // Same look as the selection cursor: solid yellow box with black glyphs
-                sb.setSpan(new BackgroundColorSpan(HIGHLIGHT_BG), matcher.start(), matcher.end(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                sb.setSpan(new ForegroundColorSpan(HIGHLIGHT_FG), matcher.start(), matcher.end(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                // Known words: plain yellow glyphs, no box (same as everywhere else)
+                sb.setSpan(new ForegroundColorSpan(KNOWN_WORD_FG), matcher.start(), matcher.end(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             }
         }
 
@@ -375,18 +373,15 @@ public class WordLookupManager {
         int[] span = mWordSpans.get(mWordIndex);
         SpannableStringBuilder sb = new SpannableStringBuilder(mText);
 
-        // known words keep their highlight in selection mode too
+        // known words keep their yellow glyphs in selection mode too (cursor word included)
         for (int[] word : mWordSpans) {
-            if (word == span) {
-                continue; // the selected word uses the selection style
-            }
             if (sKnownWords.contains(mText.substring(word[0], word[1]).toLowerCase())) {
                 sb.setSpan(new ForegroundColorSpan(KNOWN_WORD_FG), word[0], word[1], Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             }
         }
 
-        sb.setSpan(new BackgroundColorSpan(HIGHLIGHT_BG), span[0], span[1], Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-        sb.setSpan(new ForegroundColorSpan(HIGHLIGHT_FG), span[0], span[1], Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        // cursor: a light translucent box only, glyph color stays as is
+        sb.setSpan(new BackgroundColorSpan(CURSOR_BG), span[0], span[1], Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
 
         List<Cue> cues = new ArrayList<>();
         if (mCues != null && mCues.size() > 1) { // keep preceding cues as is
