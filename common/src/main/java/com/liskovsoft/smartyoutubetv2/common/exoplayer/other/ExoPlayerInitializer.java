@@ -45,7 +45,8 @@ public class ExoPlayerInitializer {
         // If ram is too big, bigger then max int value DeviceRam will return a negative number...
         // use 196MB as that can only happens if device has more than 17GB of RAM, so 196 is enough and safe
         // https://github.com/yuliskov/SmartYouTubeTV/issues/532
-        mMaxBufferBytes = deviceRam <= 0 ? 196_000_000 : (int)(deviceRam / 18);
+        // MOD: bigger buffer budget for the highest preset (was RAM/18), capped for big-RAM devices
+        mMaxBufferBytes = deviceRam <= 0 ? 196_000_000 : (int) Math.min(deviceRam / 10, 300_000_000L);
     }
 
     public SimpleExoPlayer createPlayer(Context context, DefaultRenderersFactory renderersFactory, DefaultTrackSelector trackSelector) {
@@ -115,12 +116,16 @@ public class ExoPlayerInitializer {
         switch (mPlayerData.getVideoBufferType()) {
             case PlayerData.BUFFER_HIGHEST:
                 minBufferMs = 50_000;
-                maxBufferMs = 100_000;
+                // MOD: was 100s. Let the byte budget (setTargetBufferBytes) decide instead:
+                // 4K stops at ~RAM/10 bytes, lower resolutions can buffer several minutes.
+                maxBufferMs = 300_000;
                 // Infinite buffer works awfully on live streams. Constant stuttering.
                 //maxBufferMs = 36_000_000; // technical infinity, recommended here a very high number, the max will be based on setTargetBufferBytes() value
                 baseBuilder
                         .setTargetBufferBytes(mMaxBufferBytes);
-                baseBuilder.setBackBuffer(minBufferMs, true);
+                // MOD: was 50s. A big back buffer eats the byte budget shared with the
+                // forward buffer, cutting the 4K buffer ahead roughly in half.
+                baseBuilder.setBackBuffer(10_000, true);
                 break;
             case PlayerData.BUFFER_HIGH:
                 minBufferMs = 50_000;
