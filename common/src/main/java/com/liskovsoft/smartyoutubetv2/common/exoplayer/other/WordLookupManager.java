@@ -224,9 +224,13 @@ public class WordLookupManager {
                     return true;
                 case KeyEvent.KEYCODE_DPAD_LEFT:
                 case KeyEvent.KEYCODE_DPAD_RIGHT:
-                    // Lookup mode replaces LEFT/RIGHT seeking: enter selection right away
+                    // While playing LEFT/RIGHT must keep their native seeking role.
+                    // Only when paused they enter word selection.
+                    if (mController != null && mController.isPlaying()) {
+                        return false;
+                    }
                     if (!hasWords()) {
-                        return true; // still swallow: no seeking in lookup mode
+                        return false;
                     }
                     if (isDown) {
                         enter(keyCode == KeyEvent.KEYCODE_DPAD_LEFT);

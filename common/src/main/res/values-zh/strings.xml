@@ -688,7 +688,7 @@
   <string name="my_videos">我的视频</string>
   <string name="player_audio_focus">音频聚焦（检测到其他播放器时暂停）</string>
   <string name="subtitle_word_lookup">字幕查词模式（OK暂停选词并翻译）</string>
-  <string name="subtitle_word_lookup_desc">显示字幕时：按OK键暂停并进入选词，左右键选择单词，再按OK翻译。卡片8秒后自动关闭并继续播放；卡片显示时按返回键回到选词继续查（保持暂停），选词状态按返回键退出并继续播放。查过的单词以黄色字体标出，选词时当前单词带浅色背景光标。该模式下左右键不再控制进度。</string>
+  <string name="subtitle_word_lookup_desc">显示字幕时：按OK键暂停并进入选词，左右键选择单词，再按OK翻译。卡片8秒后自动关闭并继续播放；卡片显示时按返回键回到选词继续查（保持暂停），选词状态按返回键退出并继续播放。查过的单词以黄色字体标出，选词时当前单词带浅色背景光标。播放中左右键仍是快进/快退，暂停后左右键才进入选词。</string>
   <string name="card_unlocalized_titles">未本地化的视频标题</string>
   <string name="disable_network_error_fixing_desc">如果你正在使用VPN，可能需要启用此选项。</string>
   <string name="applying_fix">请勿关闭播放器。正在应用修复程序……</string>
