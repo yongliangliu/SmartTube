@@ -4,10 +4,13 @@ import android.app.Activity;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.drawable.Drawable;
+import android.net.Uri;
 import android.os.Build.VERSION;
+import android.text.TextUtils;
 import android.util.Pair;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 import android.widget.TextView;
 import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
@@ -21,6 +24,8 @@ import com.bumptech.glide.request.target.Target;
 import com.liskovsoft.sharedutils.helpers.Helpers;
 import com.liskovsoft.sharedutils.mylogger.Log;
 import com.liskovsoft.smartyoutubetv2.common.app.models.data.Video;
+import com.liskovsoft.smartyoutubetv2.common.misc.LiveFrameCache;
+import com.liskovsoft.smartyoutubetv2.common.misc.LiveTvService;
 import com.liskovsoft.smartyoutubetv2.common.prefs.MainUIData;
 import com.liskovsoft.smartyoutubetv2.common.utils.ClickbaitRemover;
 import com.liskovsoft.smartyoutubetv2.tv.R;
@@ -150,6 +155,11 @@ public class VideoCardPresenter extends LongClickPresenter {
             return;
         }
 
+        // MOD: TV Live (IPTV) channels without a tvg-logo: grab a first frame from the stream as card image
+        if (LiveTvService.isLiveTvChannel(video) && TextUtils.isEmpty(video.cardImageUrl)) {
+            captureLiveFrame(cardView, video, context);
+        }
+
         Glide.with(context)
                 //.asBitmap() // disable animation (webp, gif)
                 .load(ClickbaitRemover.updateThumbnail(video, mThumbQuality))
@@ -171,6 +181,46 @@ public class VideoCardPresenter extends LongClickPresenter {
                         .error(R.drawable.card_placeholder) // R.color.lb_grey
                 )
                 .into(cardView.getMainImageView());
+    }
+
+    // MOD: TV Live: use a cached/grabbed stream frame as the card image when the channel has no logo.
+    // The image view is tagged with the stream url to avoid loading a stale frame into a recycled card.
+    private void captureLiveFrame(ComplexImageCardView cardView, Video video, Context context) {
+        String streamUrl = LiveTvService.getStreamUrl(video);
+
+        if (TextUtils.isEmpty(streamUrl)) {
+            return;
+        }
+
+        final ImageView imageView = cardView.getMainImageView();
+        imageView.setTag(streamUrl);
+
+        java.io.File cached = LiveFrameCache.instance(context).getCachedFile(streamUrl);
+        if (cached != null) {
+            // Let the existing Glide chain pick it up via the cardImageUrl fallback.
+            video.cardImageUrl = Uri.fromFile(cached).toString();
+            return;
+        }
+
+        LiveFrameCache.instance(context).capture(streamUrl, file -> {
+            if (file == null || !streamUrl.equals(imageView.getTag())) {
+                return;
+            }
+
+            if (context instanceof Activity && ((Activity) context).isDestroyed()) {
+                return;
+            }
+
+            video.cardImageUrl = Uri.fromFile(file).toString();
+
+            Glide.with(context)
+                    .load(Uri.fromFile(file))
+                    .apply(ViewUtil.glideOptions())
+                    .override(mWidth, mHeight)
+                    .diskCacheStrategy(VERSION.SDK_INT > 21 ? DiskCacheStrategy.ALL : DiskCacheStrategy.NONE)
+                    .error(R.drawable.card_placeholder)
+                    .into(imageView);
+        });
     }
 
     @Override

@@ -18,6 +18,7 @@ import com.liskovsoft.smartyoutubetv2.common.prefs.GeneralData;
 import com.liskovsoft.smartyoutubetv2.common.prefs.PlayerData;
 import com.liskovsoft.smartyoutubetv2.common.prefs.PlayerTweaksData;
 import com.liskovsoft.smartyoutubetv2.common.prefs.SearchData;
+import com.liskovsoft.smartyoutubetv2.common.server.Server;
 import com.liskovsoft.smartyoutubetv2.common.utils.AppDialogUtil;
 import com.liskovsoft.youtubeapi.service.internal.MediaServiceData;
 
@@ -353,6 +354,12 @@ public class PlayerSettingsPresenter extends BasePresenter<Void> {
                 getContext().getString(R.string.subtitle_word_lookup_desc),
                 option -> mPlayerTweaksData.setSubtitleWordLookupEnabled(option.isSelected()),
                 mPlayerTweaksData.isSubtitleWordLookupEnabled()));
+
+        // MOD: web config page address (TV-New style LAN config)
+        Server.get().start(getContext());
+        options.add(UiOptionItem.from(getContext().getString(R.string.web_config_address) + ": " + Server.get().getAddress(),
+                getContext().getString(R.string.web_config_address_desc),
+                option -> MessageHelpers.showLongMessage(getContext(), Server.get().getAddress())));
 
         options.add(UiOptionItem.from(getContext().getString(R.string.suggestions_horizontally_scrolled),
                 option -> mPlayerTweaksData.setSuggestionsHorizontallyScrolled(option.isSelected()),

@@ -21,6 +21,7 @@ public class SurfaceViewWrapper implements SurfaceWrapper {
         mVideoSurface.getHolder().addCallback(new SurfaceHolder.Callback() {
             @Override
             public void surfaceCreated(SurfaceHolder holder) {
+                android.util.Log.d("SurfaceDebug", "SurfaceViewWrapper.surfaceCreated: callback=" + mMediaPlaybackCallback);
                 if (mMediaPlaybackCallback != null) {
                     mMediaPlaybackCallback.surfaceCreated(holder);
                 }
@@ -36,6 +37,7 @@ public class SurfaceViewWrapper implements SurfaceWrapper {
 
             @Override
             public void surfaceDestroyed(SurfaceHolder holder) {
+                android.util.Log.d("SurfaceDebug", "SurfaceViewWrapper.surfaceDestroyed: callback=" + mMediaPlaybackCallback);
                 if (mMediaPlaybackCallback != null) {
                     mMediaPlaybackCallback.surfaceDestroyed(holder);
                 }
@@ -49,6 +51,7 @@ public class SurfaceViewWrapper implements SurfaceWrapper {
      */
     @Override
     public void setSurfaceHolderCallback(SurfaceHolder.Callback callback) {
+        android.util.Log.d("SurfaceDebug", "SurfaceViewWrapper.setSurfaceHolderCallback: callback=" + callback + " state=" + (mState == SURFACE_CREATED ? "CREATED" : "NOT_CREATED"));
         mMediaPlaybackCallback = callback;
 
         if (callback != null) {

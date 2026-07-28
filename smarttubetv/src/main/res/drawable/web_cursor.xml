@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- MOD: virtual remote cursor for the Page WebView -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="oval">
+            <size android:width="28dp" android:height="28dp"/>
+            <solid android:color="#66000000"/>
+            <stroke android:width="2dp" android:color="#FFFFFFFF"/>
+        </shape>
+    </item>
+    <item
+        android:width="8dp"
+        android:height="8dp"
+        android:gravity="center">
+        <shape android:shape="oval">
+            <solid android:color="#FFFFFFFF"/>
+        </shape>
+    </item>
+</layer-list>

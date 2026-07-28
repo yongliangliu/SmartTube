@@ -7,6 +7,8 @@ import com.liskovsoft.mediaserviceinterfaces.data.MediaGroup;
 import com.liskovsoft.sharedutils.helpers.Helpers;
 import com.liskovsoft.smartyoutubetv2.common.R;
 import com.liskovsoft.smartyoutubetv2.common.app.models.data.Video;
+import com.liskovsoft.smartyoutubetv2.common.misc.LiveTvService;
+import com.liskovsoft.smartyoutubetv2.common.misc.PageService;
 import com.liskovsoft.smartyoutubetv2.common.prefs.AppPrefs;
 import com.liskovsoft.smartyoutubetv2.common.prefs.AppPrefs.ProfileChangeListener;
 import com.liskovsoft.smartyoutubetv2.common.prefs.GeneralData;
@@ -243,6 +245,10 @@ public class SidebarService implements ProfileChangeListener {
         mDefaultSections.put(R.string.header_kids_home, MediaGroup.TYPE_KIDS_HOME);
         mDefaultSections.put(R.string.header_sports, MediaGroup.TYPE_SPORTS);
         mDefaultSections.put(R.string.badge_live, MediaGroup.TYPE_LIVE);
+        // MOD: TV Live (IPTV) section
+        mDefaultSections.put(R.string.header_tv_live, LiveTvService.SECTION_ID);
+        // MOD: Page section
+        mDefaultSections.put(R.string.header_web_page, PageService.SECTION_ID);
         mDefaultSections.put(R.string.header_gaming, MediaGroup.TYPE_GAMING);
         mDefaultSections.put(R.string.header_news, MediaGroup.TYPE_NEWS);
         mDefaultSections.put(R.string.header_music, MediaGroup.TYPE_MUSIC);
@@ -304,6 +310,18 @@ public class SidebarService implements ProfileChangeListener {
 
         // Backward compatibility
         enableSection(MediaGroup.TYPE_SETTINGS, true);
+
+        // MOD: TV Live: enable once for the users with already persisted sidebar
+        if (!mPrefs.getBoolean("live_tv_section_added", false)) {
+            enableSection(LiveTvService.SECTION_ID, true);
+            mPrefs.putBoolean("live_tv_section_added", true);
+        }
+
+        // MOD: Page: enable once for the users with already persisted sidebar
+        if (!mPrefs.getBoolean("page_section_added", false)) {
+            enableSection(PageService.SECTION_ID, true);
+            mPrefs.putBoolean("page_section_added", true);
+        }
 
         cleanupPinnedItems();
     }

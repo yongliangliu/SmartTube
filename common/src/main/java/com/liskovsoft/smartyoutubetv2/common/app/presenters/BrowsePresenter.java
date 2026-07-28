@@ -38,6 +38,8 @@ import com.liskovsoft.smartyoutubetv2.common.app.presenters.interfaces.VideoGrou
 import com.liskovsoft.smartyoutubetv2.common.app.views.BrowseView;
 import com.liskovsoft.smartyoutubetv2.common.misc.AppDataSourceManager;
 import com.liskovsoft.smartyoutubetv2.common.misc.BrowseProcessorManager;
+import com.liskovsoft.smartyoutubetv2.common.misc.LiveTvService;
+import com.liskovsoft.smartyoutubetv2.common.misc.PageService;
 import com.liskovsoft.smartyoutubetv2.common.misc.MediaServiceManager;
 import com.liskovsoft.smartyoutubetv2.common.misc.MediaServiceManager.AccountChangeListener;
 import com.liskovsoft.smartyoutubetv2.common.prefs.AccountsData;
@@ -206,6 +208,10 @@ public class BrowsePresenter extends BasePresenter<BrowseView> implements Sectio
         mSectionsMapping.put(MediaGroup.TYPE_USER_PLAYLISTS, new BrowseSection(MediaGroup.TYPE_USER_PLAYLISTS, getContext().getString(R.string.header_playlists), BrowseSection.TYPE_ROW, R.drawable.icon_playlist, false));
         mSectionsMapping.put(MediaGroup.TYPE_NOTIFICATIONS, new BrowseSection(MediaGroup.TYPE_NOTIFICATIONS, getContext().getString(R.string.header_notifications), BrowseSection.TYPE_GRID, R.drawable.icon_notification, false));
         mSectionsMapping.put(MediaGroup.TYPE_PLAYBACK_QUEUE, new BrowseSection(MediaGroup.TYPE_PLAYBACK_QUEUE, getContext().getString(R.string.playback_queue_category_title), BrowseSection.TYPE_GRID, R.drawable.icon_queue, false));
+        // MOD: TV Live (IPTV) section: grouped rows (each group-title is a horizontal row)
+        mSectionsMapping.put(LiveTvService.SECTION_ID, new BrowseSection(LiveTvService.SECTION_ID, getContext().getString(R.string.header_tv_live), BrowseSection.TYPE_ROW, R.drawable.icon_live));
+        // MOD: Page section: grouped rows of web-page shortcuts (opens a full-screen WebView)
+        mSectionsMapping.put(PageService.SECTION_ID, new BrowseSection(PageService.SECTION_ID, getContext().getString(R.string.header_web_page), BrowseSection.TYPE_ROW, R.drawable.icon_channels));
 
         if (getSidebarService().isSettingsSectionEnabled()) {
             mSectionsMapping.put(MediaGroup.TYPE_SETTINGS, new BrowseSection(MediaGroup.TYPE_SETTINGS, getContext().getString(R.string.header_settings), BrowseSection.TYPE_SETTINGS_GRID, R.drawable.icon_settings));
@@ -269,6 +275,10 @@ public class BrowsePresenter extends BasePresenter<BrowseView> implements Sectio
     private void initLocalGridMapping() {
         mLocalGridMappings.put(MediaGroup.TYPE_PLAYBACK_QUEUE, () -> Playlist.instance().getAllReversed());
         mLocalGridMappings.put(MediaGroup.TYPE_BLOCKED_CHANNELS, this::getBlockedChannels);
+        // MOD: TV Live fallback (also disables the group continuation logic for this section)
+        mLocalGridMappings.put(LiveTvService.SECTION_ID, () -> LiveTvService.instance(getContext()).getCachedChannels());
+        // MOD: Page fallback
+        mLocalGridMappings.put(PageService.SECTION_ID, () -> PageService.instance(getContext()).getCachedPages());
     }
 
     private List<Video> getBlockedChannels() {
@@ -432,6 +442,12 @@ public class BrowsePresenter extends BasePresenter<BrowseView> implements Sectio
     @Override
     public void onVideoItemClicked(Video item) {
         if (getContext() == null) {
+            return;
+        }
+
+        // MOD: Page item: open the target url in the full-screen WebView instead of the player
+        if (PageService.isPage(item)) {
+            Utils.openLink(getContext(), PageService.getPageUrl(item));
             return;
         }
 
@@ -657,8 +673,14 @@ public class BrowsePresenter extends BasePresenter<BrowseView> implements Sectio
                 }
                 break;
             case BrowseSection.TYPE_ROW:
-                Observable<List<MediaGroup>> groups = mRowMapping.get(section.getId());
-                updateVideoRows(section, groups, section.isAuthOnly());
+                if (section.getId() == LiveTvService.SECTION_ID) { // MOD: TV Live grouped rows (async remote m3u load)
+                    updateLiveTvRows(section);
+                } else if (section.getId() == PageService.SECTION_ID) { // MOD: Page grouped rows (local config)
+                    updatePageRows(section);
+                } else {
+                    Observable<List<MediaGroup>> groups = mRowMapping.get(section.getId());
+                    updateVideoRows(section, groups, section.isAuthOnly());
+                }
                 break;
             case BrowseSection.TYPE_SETTINGS_GRID:
                 Callable<List<SettingsItem>> items = mSettingsGridMapping.get(section.getId());
@@ -679,6 +701,127 @@ public class BrowsePresenter extends BasePresenter<BrowseView> implements Sectio
     private void updateSettingsGrid(BrowseSection section, Callable<List<SettingsItem>> items) {
         getView().updateSection(SettingsGroup.from(Helpers.get(items), section));
         getView().showProgressBar(false);
+    }
+
+    // MOD: TV Live channels: fetch the remote m3u playlist on a worker thread, render one row per group
+    private void updateLiveTvRows(BrowseSection section) {
+        disposeActions();
+
+        if (getView() == null) {
+            Log.e(TAG, "Browse view has been unloaded from the memory. Low RAM?");
+            getViewManager().startView(BrowseView.class);
+            return;
+        }
+
+        getView().showProgressBar(true);
+
+        VideoGroup baseGroup = VideoGroup.from(section);
+        baseGroup.setAction(VideoGroup.ACTION_REPLACE);
+        getView().updateSection(baseGroup);
+
+        Disposable updateAction = LiveTvService.instance(getContext()).getChannelGroupsObserve()
+                .subscribe(
+                        groups -> {
+                            if (getView() == null) {
+                                return;
+                            }
+
+                            getView().showProgressBar(false);
+
+                            renderLiveTvGroups(section, groups);
+
+                            if (groups.isEmpty()) {
+                                getView().showError(new CategoryEmptyError(getContext(), null));
+                            }
+                        },
+                        error -> {
+                            Log.e(TAG, "updateLiveTvRows error: %s", error.getMessage());
+                            // Offline fallback: render the last successfully loaded channels
+                            if (getView() != null) {
+                                getView().showProgressBar(false);
+                                List<LiveTvService.ChannelGroup> cached = LiveTvService.instance(getContext())
+                                        .groupChannels(LiveTvService.instance(getContext()).getCachedChannels());
+                                if (!cached.isEmpty()) {
+                                    renderLiveTvGroups(section, cached);
+                                } else {
+                                    handleLoadError(error);
+                                }
+                            }
+                        });
+
+        mActions.add(updateAction);
+    }
+
+    // MOD: TV Live: render each channel group as a separate horizontal row (appended after the empty base)
+    private void renderLiveTvGroups(BrowseSection section, List<LiveTvService.ChannelGroup> groups) {
+        int rowId = 1;
+        for (LiveTvService.ChannelGroup channelGroup : groups) {
+            if (channelGroup.channels.isEmpty()) {
+                continue;
+            }
+
+            VideoGroup videoGroup = VideoGroup.from(channelGroup.channels, section);
+            videoGroup.setId(section.getId() * 1000 + rowId++); // unique, stable per section
+            videoGroup.setTitle(channelGroup.title);
+            getView().updateSection(videoGroup);
+        }
+    }
+
+    // MOD: Page: read the local config on a worker thread, render one row per group
+    private void updatePageRows(BrowseSection section) {
+        disposeActions();
+
+        if (getView() == null) {
+            Log.e(TAG, "Browse view has been unloaded from the memory. Low RAM?");
+            getViewManager().startView(BrowseView.class);
+            return;
+        }
+
+        getView().showProgressBar(true);
+
+        VideoGroup baseGroup = VideoGroup.from(section);
+        baseGroup.setAction(VideoGroup.ACTION_REPLACE);
+        getView().updateSection(baseGroup);
+
+        Disposable updateAction = PageService.instance(getContext()).getPageGroupsObserve()
+                .subscribe(
+                        groups -> {
+                            if (getView() == null) {
+                                return;
+                            }
+
+                            getView().showProgressBar(false);
+
+                            renderPageGroups(section, groups);
+
+                            if (groups.isEmpty()) {
+                                getView().showError(new CategoryEmptyError(getContext(), null));
+                            }
+                        },
+                        error -> {
+                            Log.e(TAG, "updatePageRows error: %s", error.getMessage());
+                            if (getView() != null) {
+                                getView().showProgressBar(false);
+                                handleLoadError(error);
+                            }
+                        });
+
+        mActions.add(updateAction);
+    }
+
+    // MOD: Page: render each page group as a separate horizontal row (appended after the empty base)
+    private void renderPageGroups(BrowseSection section, List<PageService.PageGroup> groups) {
+        int rowId = 1;
+        for (PageService.PageGroup pageGroup : groups) {
+            if (pageGroup.pages.isEmpty()) {
+                continue;
+            }
+
+            VideoGroup videoGroup = VideoGroup.from(pageGroup.pages, section);
+            videoGroup.setId(section.getId() * 1000 + rowId++); // unique, stable per section
+            videoGroup.setTitle(pageGroup.title);
+            getView().updateSection(videoGroup);
+        }
     }
 
     private void updateLocalGrid(BrowseSection section, Callable<List<Video>> items) {

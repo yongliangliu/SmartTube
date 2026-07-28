@@ -42,6 +42,7 @@ public class SurfacePlaybackFragment extends PlaybackSupportFragment {
         mVideoSurfaceWrapper = (PlayerTweaksData.instance(getContext()).isTextureViewEnabled() ||
                 PlayerData.instance(getContext()).getRotationAngle() != 0) ?
                 new TextureViewWrapper(getContext(), root) : new SurfaceViewWrapper(getContext(), root);
+        android.util.Log.d("SurfaceDebug", "SurfacePlaybackFragment.onCreateView: wrapper=" + mVideoSurfaceWrapper.getClass().getSimpleName());
         mVideoSurfaceRoot = root.findViewById(com.liskovsoft.smartyoutubetv2.tv.R.id.surface_root);
         mVideoSurfaceRoot.addView(mVideoSurfaceWrapper.getSurfaceView(), 0);
         mVideoSurfaceRoot.setAspectRatioListener((targetAspectRatio, naturalAspectRatio, aspectRatioMismatch) -> scaleIfNeeded());
@@ -55,6 +56,7 @@ public class SurfacePlaybackFragment extends PlaybackSupportFragment {
      * Adds {@link SurfaceHolder.Callback} to {@link SurfaceView}.
      */
     public void setSurfaceHolderCallback(SurfaceHolder.Callback callback) {
+        android.util.Log.d("SurfaceDebug", "SurfacePlaybackFragment.setSurfaceHolderCallback: callback=" + callback + " wrapper=" + mVideoSurfaceWrapper);
         if (mVideoSurfaceWrapper != null) {
             mVideoSurfaceWrapper.setSurfaceHolderCallback(callback);
         }

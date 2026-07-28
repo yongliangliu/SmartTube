@@ -21,10 +21,13 @@ import com.liskovsoft.smartyoutubetv2.common.app.models.playback.manager.PlayerC
 import com.liskovsoft.smartyoutubetv2.common.app.presenters.AppDialogPresenter;
 import com.liskovsoft.smartyoutubetv2.common.app.presenters.dialogs.VideoActionPresenter;
 import com.liskovsoft.smartyoutubetv2.common.app.views.PlaybackView;
+import com.liskovsoft.smartyoutubetv2.common.misc.LiveTvService;
 import com.liskovsoft.smartyoutubetv2.common.misc.MediaServiceManager;
 import com.liskovsoft.smartyoutubetv2.common.prefs.PlayerData;
 import com.liskovsoft.smartyoutubetv2.common.utils.Utils;
 import com.liskovsoft.youtubeapi.service.YouTubeServiceManager;
+
+import java.util.Collections;
 
 import io.reactivex.disposables.Disposable;
 
@@ -280,6 +283,14 @@ public class VideoLoaderController extends BasePlayerController {
             return;
         }
 
+        // MOD: TV Live channel: pass the direct stream url to the player (bypass YouTube format info)
+        if (LiveTvService.isLiveTvChannel(video)) {
+            Utils.post(mShowProgressBar);
+            disposeActions();
+            openLiveTvChannel(video);
+            return;
+        }
+
         // Fix no progress on next video (the engine may still buffering a bit)
         //getPlayer().showProgressBar(true);
         Utils.post(mShowProgressBar);
@@ -293,6 +304,30 @@ public class VideoLoaderController extends BasePlayerController {
                                getPlayer().showProgressBar(false);
                                mErrorFixerController.runFormatErrorAction(error);
                            });
+    }
+
+    // MOD: TV Live: select a source type by the stream url extension
+    private void openLiveTvChannel(Video video) {
+        String url = LiveTvService.getStreamUrl(video);
+
+        if (url == null) {
+            return;
+        }
+
+        if (url.contains(".mpd")) {
+            getPlayer().openDashUrl(url);
+        } else if (Helpers.containsAny(url, ".mp4", ".webm", ".flv", ".aac", ".mp3")) {
+            getPlayer().openUrlList(Collections.singletonList(url));
+        } else {
+            // Most iptv streams are hls (m3u8) even without the extension in the url
+            getPlayer().openHlsUrl(url);
+        }
+
+        // MOD: restore the video surface visibility. resetPlayerState() hides it (INVISIBLE) to cover
+        // the previous video's last frame. The regular YouTube path un-hides it in processFormatInfo()
+        // via showBackground(bgImageUrl); the live path bypasses that, so without this the SurfaceView
+        // stays INVISIBLE, its surface is never created and only audio plays (black screen).
+        getPlayer().showBackground(null);
     }
 
     private void processFormatInfo(MediaItemFormatInfo formatInfo) {

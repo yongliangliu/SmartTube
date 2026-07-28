@@ -110,6 +110,7 @@ public final class LeanbackPlayerAdapter extends PlayerAdapter implements Runnab
 
   @Override
   public void onAttachedToHost(PlaybackGlueHost host) {
+    android.util.Log.d("SurfaceDebug", "LeanbackPlayerAdapter.onAttachedToHost: host=" + host + " player=" + Integer.toHexString(System.identityHashCode(player)));
     if (host instanceof SurfaceHolderGlueHost) {
       surfaceHolderGlueHost = ((SurfaceHolderGlueHost) host);
       surfaceHolderGlueHost.setSurfaceHolderCallback(componentListener);
@@ -220,6 +221,7 @@ public final class LeanbackPlayerAdapter extends PlayerAdapter implements Runnab
   // Internal methods.
 
   /* package */ void setVideoSurface(@Nullable Surface surface) {
+    android.util.Log.d("SurfaceDebug", "LeanbackPlayerAdapter.setVideoSurface: surface=" + surface + " player=" + Integer.toHexString(System.identityHashCode(player)));
     hasSurface = surface != null;
     Player.VideoComponent videoComponent = player.getVideoComponent();
     if (videoComponent != null) {

@@ -496,6 +496,7 @@ public class MediaCodecVideoRenderer extends MediaCodecRenderer {
   }
 
   private void setSurface(Surface surface) throws ExoPlaybackException {
+    android.util.Log.d("SurfaceDebug", "MediaCodecVideoRenderer.setSurface: surface=" + surface + " oldSurface=" + this.surface + " state=" + getState() + " codec=" + getCodec() + " renderer=" + Integer.toHexString(System.identityHashCode(this)));
     if (surface == null) {
       // Use a dummy surface if possible.
       if (dummySurface != null) {
@@ -544,7 +545,11 @@ public class MediaCodecVideoRenderer extends MediaCodecRenderer {
 
   @Override
   protected boolean shouldInitCodec(MediaCodecInfo codecInfo) {
-    return surface != null || shouldUseDummySurface(codecInfo);
+    boolean result = surface != null || shouldUseDummySurface(codecInfo);
+    if (!result) {
+      android.util.Log.d("SurfaceDebug", "MediaCodecVideoRenderer.shouldInitCodec: NO SURFACE, skip codec init. renderer=" + Integer.toHexString(System.identityHashCode(this)));
+    }
+    return result;
   }
 
   @Override

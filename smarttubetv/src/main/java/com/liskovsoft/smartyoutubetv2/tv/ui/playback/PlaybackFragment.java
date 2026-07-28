@@ -517,6 +517,7 @@ public class PlaybackFragment extends SeekModePlaybackFragment implements Playba
 
         DefaultRenderersFactory renderersFactory = new CustomOverridesRenderersFactory(getContext());
         mPlayer = mPlayerInitializer.createPlayer(getContext(), renderersFactory, trackSelector);
+        android.util.Log.d("SurfaceDebug", "PlaybackFragment.createPlayer: player=" + Integer.toHexString(System.identityHashCode(mPlayer)));
 
         mExoPlayerController.setPlayer(mPlayer);
     }

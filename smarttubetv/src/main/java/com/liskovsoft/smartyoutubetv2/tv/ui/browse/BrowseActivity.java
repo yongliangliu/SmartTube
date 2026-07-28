@@ -4,6 +4,7 @@ import android.os.Bundle;
 
 import com.liskovsoft.sharedutils.helpers.MessageHelpers;
 import com.liskovsoft.smartyoutubetv2.common.prefs.MainUIData;
+import com.liskovsoft.smartyoutubetv2.common.server.Server;
 import com.liskovsoft.smartyoutubetv2.tv.R;
 import com.liskovsoft.smartyoutubetv2.tv.ui.common.LeanbackActivity;
 
@@ -18,6 +19,18 @@ public class BrowseActivity extends LeanbackActivity {
         } catch (NoClassDefFoundError e) {
             // Failed resolution of: Landroidx/lifecycle/ViewTreeLifecycleOwner;
             MessageHelpers.showMessage(this, e.getMessage());
+        }
+
+        // MOD: web config server (TV-New style)
+        Server.get().start(this);
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+
+        if (isFinishing()) {
+            Server.get().stop();
         }
     }
 

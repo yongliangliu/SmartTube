@@ -26,6 +26,7 @@ import com.liskovsoft.smartyoutubetv2.common.misc.MediaServiceManager;
 import com.liskovsoft.smartyoutubetv2.common.misc.StreamReminderService;
 import com.liskovsoft.smartyoutubetv2.common.prefs.AccountsData;
 import com.liskovsoft.smartyoutubetv2.common.prefs.GeneralData;
+import com.liskovsoft.smartyoutubetv2.common.misc.LiveProxyBypass;
 import com.liskovsoft.smartyoutubetv2.common.proxy.ProxyManager;
 import com.liskovsoft.smartyoutubetv2.common.utils.IntentExtractor;
 import com.liskovsoft.smartyoutubetv2.common.utils.SimpleEditDialog;
@@ -173,6 +174,8 @@ public class SplashPresenter extends BasePresenter<SplashView> {
             // Apply proxy config after global prefs but before starting networking.
             if (GeneralData.instance(getContext()).isProxyEnabled()) {
                 new ProxyManager(getContext()).configureSystemProxy();
+                // MOD: TV Live: per-host direct fallback for streams that fail via the proxy
+                LiveProxyBypass.install();
             }
         }
     }

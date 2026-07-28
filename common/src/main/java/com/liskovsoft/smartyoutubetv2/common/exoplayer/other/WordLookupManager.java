@@ -25,6 +25,7 @@ import com.google.android.exoplayer2.ui.SubtitleView;
 import com.liskovsoft.sharedutils.mylogger.Log;
 import com.liskovsoft.sharedutils.okhttp.OkHttpManager;
 import com.liskovsoft.smartyoutubetv2.common.prefs.PlayerTweaksData;
+import com.liskovsoft.smartyoutubetv2.common.prefs.WordLookupData;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -60,12 +61,7 @@ import okhttp3.Response;
  */
 public class WordLookupManager {
     private static final String TAG = WordLookupManager.class.getSimpleName();
-    // LLM translation worker
-    private static final String ENDPOINT = "https://subtrans.liuyongliang123.workers.dev";
-    private static final String AUTH_TOKEN = "st-subtrans-7f3d9a2c";
-    // Generic KV storage (Cloudflare D1): lookup results + known words
-    private static final String KV_BASE = "https://kvdata.liuyongliang123.workers.dev/api/st_words";
-    private static final String KV_TOKEN = "1376464";
+    // Endpoints/tokens are editable from the web config page (see WordLookupData)
     private static final MediaType JSON_TYPE = MediaType.parse("application/json; charset=utf-8");
     private static final int CURSOR_BG = 0x59FFFFFF; // translucent light box: selection cursor
     private static final int KNOWN_WORD_FG = 0xFFFFEB3B; // yellow: already looked up words
@@ -136,6 +132,10 @@ public class WordLookupManager {
         return PlayerTweaksData.instance(mContext).isSubtitleWordLookupEnabled();
     }
 
+    private WordLookupData getConfig() {
+        return WordLookupData.instance(mContext);
+    }
+
     /**
      * Highlight known (already looked up) words in the idle subtitle.<br/>
      * Returns the original list when nothing to decorate.
@@ -199,15 +199,38 @@ public class WordLookupManager {
             return false;
         }
 
+        int keyCode = event.getKeyCode();
+        boolean isDown = event.getAction() == KeyEvent.ACTION_DOWN;
+
+        // Keep the play/pause key working as plain play/pause while the lookup mode is on.
+        // Without this the global remap (play/pause -> OK) kicks in when the mode doesn't
+        // consume the OK key (e.g. subs are off) and triggers the OK action (speed dialog etc.).
+        if (keyCode == KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE
+                || keyCode == KeyEvent.KEYCODE_MEDIA_PLAY
+                || keyCode == KeyEvent.KEYCODE_MEDIA_PAUSE) {
+            if (mController == null) {
+                return false;
+            }
+            if (isDown) {
+                if (isActive()) {
+                    exit(); // leave word selection, playback state restored inside
+                } else if (keyCode == KeyEvent.KEYCODE_MEDIA_PLAY) {
+                    mController.setPlay(true);
+                } else if (keyCode == KeyEvent.KEYCODE_MEDIA_PAUSE) {
+                    mController.setPlay(false);
+                } else {
+                    mController.setPlay(!mController.isPlaying());
+                }
+            }
+            return true;
+        }
+
         if (mSubtitleView == null || mSubtitleView.getVisibility() != View.VISIBLE) {
             if (isActive()) {
                 exit();
             }
             return false;
         }
-
-        int keyCode = event.getKeyCode();
-        boolean isDown = event.getAction() == KeyEvent.ACTION_DOWN;
 
         if (mState == STATE_IDLE) {
             switch (keyCode) {
@@ -444,8 +467,8 @@ public class WordLookupManager {
 
         // 1. try the KV storage first, 2. fallback to the LLM worker
         Request kvGet = new Request.Builder()
-                .url(KV_BASE + "/" + urlEncode(cacheKey))
-                .header("Authorization", "Bearer " + KV_TOKEN)
+                .url(getConfig().getKvBase() + "/" + urlEncode(cacheKey))
+                .header("Authorization", "Bearer " + getConfig().getKvToken())
                 .build();
 
         OkHttpManager.instance().getClient().newCall(kvGet).enqueue(new Callback() {
@@ -492,8 +515,8 @@ public class WordLookupManager {
         }
 
         Request request = new Request.Builder()
-                .url(ENDPOINT)
-                .header("X-Auth-Token", AUTH_TOKEN)
+                .url(getConfig().getEndpoint())
+                .header("X-Auth-Token", getConfig().getAuthToken())
                 .post(RequestBody.create(JSON_TYPE, payload.toString()))
                 .build();
 
@@ -546,8 +569,8 @@ public class WordLookupManager {
 
     private void loadKnownWordsPage(int offset) {
         Request request = new Request.Builder()
-                .url(KV_BASE + "?limit=200&offset=" + offset)
-                .header("Authorization", "Bearer " + KV_TOKEN)
+                .url(getConfig().getKvBase() + "?limit=200&offset=" + offset)
+                .header("Authorization", "Bearer " + getConfig().getKvToken())
                 .build();
 
         OkHttpManager.instance().getClient().newCall(request).enqueue(new Callback() {
@@ -608,8 +631,8 @@ public class WordLookupManager {
         }
 
         Request request = new Request.Builder()
-                .url(KV_BASE)
-                .header("Authorization", "Bearer " + KV_TOKEN)
+                .url(getConfig().getKvBase())
+                .header("Authorization", "Bearer " + getConfig().getKvToken())
                 .post(RequestBody.create(JSON_TYPE, payload.toString()))
                 .build();
 

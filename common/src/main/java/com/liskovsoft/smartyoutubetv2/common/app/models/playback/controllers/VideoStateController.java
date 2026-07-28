@@ -11,6 +11,7 @@ import com.liskovsoft.smartyoutubetv2.common.app.models.playback.manager.PlayerU
 import com.liskovsoft.smartyoutubetv2.common.app.models.playback.service.VideoStateService.State;
 import com.liskovsoft.smartyoutubetv2.common.app.presenters.AppDialogPresenter;
 import com.liskovsoft.smartyoutubetv2.common.exoplayer.selector.FormatItem;
+import com.liskovsoft.smartyoutubetv2.common.misc.LiveTvService;
 import com.liskovsoft.smartyoutubetv2.common.misc.MediaServiceManager;
 import com.liskovsoft.smartyoutubetv2.common.misc.ScreensaverManager;
 import com.liskovsoft.smartyoutubetv2.common.prefs.GeneralData;
@@ -551,6 +552,7 @@ public class VideoStateController extends BasePlayerController {
         Video video = getVideo();
 
         if (video == null || mIncognito || getPlayer() == null || !getPlayer().containsMedia()
+                || LiveTvService.isLiveTvChannel(video) // MOD: TV Live channel isn't a YouTube video
                 || (video.isRemote && getRemoteControlData().isRemoteHistoryDisabled())
                 || getGeneralData().getHistoryState() == GeneralData.HISTORY_DISABLED) {
             return;

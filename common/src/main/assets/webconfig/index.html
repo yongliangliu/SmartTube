@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>SmartTube 网页配置</title>
+<style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, "PingFang SC", "Helvetica Neue", sans-serif; background: #f2f2f7; color: #1c1c1e; }
+    .header { background: #cc0000; color: #fff; padding: 18px 16px; font-size: 18px; font-weight: 600; }
+    .container { max-width: 560px; margin: 0 auto; padding: 12px; }
+    .card { background: #fff; border-radius: 12px; padding: 16px; margin-bottom: 12px; }
+    .card h2 { font-size: 15px; color: #6e6e73; font-weight: 600; margin-bottom: 12px; }
+    .field { margin-bottom: 14px; }
+    .field label { display: block; font-size: 13px; color: #6e6e73; margin-bottom: 6px; }
+    .field input[type=text] { width: 100%; padding: 10px 12px; font-size: 15px; border: 1px solid #d1d1d6; border-radius: 8px; background: #fafafa; }
+    .field input[type=text]:focus { outline: none; border-color: #cc0000; background: #fff; }
+    .field select { width: 100%; padding: 10px 12px; font-size: 15px; border: 1px solid #d1d1d6; border-radius: 8px; background: #fafafa; }
+    .switch-row { display: flex; align-items: center; justify-content: space-between; padding: 4px 0; }
+    .switch-row span { font-size: 15px; }
+    .switch { position: relative; width: 51px; height: 31px; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; background: #e5e5ea; border-radius: 16px; transition: .2s; cursor: pointer; }
+    .slider:before { content: ""; position: absolute; width: 27px; height: 27px; left: 2px; top: 2px; background: #fff; border-radius: 50%; transition: .2s; box-shadow: 0 1px 3px rgba(0,0,0,.3); }
+    .switch input:checked + .slider { background: #34c759; }
+    .switch input:checked + .slider:before { transform: translateX(20px); }
+    .btn { display: block; width: 100%; padding: 13px; font-size: 16px; font-weight: 600; color: #fff; background: #cc0000; border: none; border-radius: 12px; cursor: pointer; }
+    .btn:active { opacity: .8; }
+    .btn.secondary { background: #fff; color: #cc0000; margin-top: 10px; border: 1px solid #cc0000; font-weight: 400; }
+    #toast { position: fixed; left: 50%; bottom: 40px; transform: translateX(-50%); background: rgba(0,0,0,.75); color: #fff; padding: 10px 20px; border-radius: 20px; font-size: 14px; opacity: 0; transition: opacity .3s; pointer-events: none; }
+    #toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+<div class="header">SmartTube 网页配置</div>
+<div class="container">
+    <div class="card">
+        <div class="switch-row">
+            <span>字幕查词模式</span>
+            <label class="switch">
+                <input type="checkbox" id="lookup_enabled">
+                <span class="slider"></span>
+            </label>
+        </div>
+    </div>
+    <div class="card">
+        <h2>字幕查词 · 翻译服务</h2>
+        <div class="field">
+            <label for="endpoint">翻译服务地址 (LLM Worker)</label>
+            <input type="text" id="endpoint" placeholder="https://...">
+        </div>
+        <div class="field">
+            <label for="auth_token">翻译服务 Token (X-Auth-Token)</label>
+            <input type="text" id="auth_token">
+        </div>
+    </div>
+    <div class="card">
+        <h2>字幕查词 · 单词存储 (KV)</h2>
+        <div class="field">
+            <label for="kv_base">KV 存储地址</label>
+            <input type="text" id="kv_base" placeholder="https://...">
+        </div>
+        <div class="field">
+            <label for="kv_token">KV Token (Bearer)</label>
+            <input type="text" id="kv_token">
+        </div>
+    </div>
+    <div class="card">
+        <h2>电视直播 (TV Live)</h2>
+        <div class="field">
+            <label for="live_tv_config">直播源配置 (单个 m3u/m3u8 地址，或 JSON 多源)</label>
+            <textarea id="live_tv_config" rows="10" placeholder='支持两种写法：&#10;1) 直接填单个地址： https://...m3u&#10;2) JSON 多源：&#10;[&#10;  { "type": "m3u",  "url": "https://...iptv.m3u" },&#10;  { "type": "m3u8", "group": [&#10;      { "name": "新闻", "url": [ { "name": "cctv1", "url": "https://...cctv1.m3u8" } ] }&#10;  ]}&#10;]' style="width:100%;box-sizing:border-box;font-family:monospace;"></textarea>
+        </div>
+    </div>
+    <div class="card">
+        <h2>网页导航 (Page)</h2>
+        <div class="field">
+            <label for="page_config">网页分组配置 (JSON 数组，留空则不显示)</label>
+            <textarea id="page_config" rows="8" placeholder='JSON 数组，每组含 name 和 url 列表：&#10;[&#10;  { "name": "常用", "url": [&#10;      { "name": "百度", "url": "https://www.baidu.com", "logo": "" },&#10;      { "name": "哔哩哔哩", "url": "https://www.bilibili.com" }&#10;  ]}&#10;]' style="width:100%;box-sizing:border-box;font-family:monospace;"></textarea>
+        </div>
+    </div>
+    <div class="card">
+        <div class="switch-row">
+            <span>代理 (Proxy)</span>
+            <label class="switch">
+                <input type="checkbox" id="proxy_enabled">
+                <span class="slider"></span>
+            </label>
+        </div>
+        <div class="field" style="margin-top:12px;">
+            <label for="proxy_type">类型</label>
+            <select id="proxy_type">
+                <option value="http">HTTP</option>
+                <option value="socks">SOCKS</option>
+            </select>
+        </div>
+        <div class="field">
+            <label for="proxy_host">地址 (Host)</label>
+            <input type="text" id="proxy_host" placeholder="192.168.1.1">
+        </div>
+        <div class="field">
+            <label for="proxy_port">端口 (Port)</label>
+            <input type="text" id="proxy_port" placeholder="8080">
+        </div>
+        <div class="field">
+            <label for="proxy_username">用户名 (可选)</label>
+            <input type="text" id="proxy_username">
+        </div>
+        <div class="field">
+            <label for="proxy_password">密码 (可选)</label>
+            <input type="text" id="proxy_password">
+        </div>
+    </div>
+    <button class="btn" onclick="save()">保存配置</button>
+    <button class="btn secondary" onclick="load()">重新读取当前配置</button>
+</div>
+<div id="toast"></div>
+<script>
+    var FIELDS = ['endpoint', 'auth_token', 'kv_base', 'kv_token', 'live_tv_config', 'page_config', 'proxy_type', 'proxy_host', 'proxy_port', 'proxy_username', 'proxy_password'];
+
+    function toast(msg) {
+        var el = document.getElementById('toast');
+        el.textContent = msg;
+        el.classList.add('show');
+        setTimeout(function () { el.classList.remove('show'); }, 2000);
+    }
+
+    function load() {
+        fetch('/settings').then(function (res) { return res.json(); }).then(function (data) {
+            document.getElementById('lookup_enabled').checked = !!data.lookup_enabled;
+            document.getElementById('proxy_enabled').checked = !!data.proxy_enabled;
+            FIELDS.forEach(function (key) {
+                document.getElementById(key).value = data[key] || '';
+            });
+        }).catch(function () { toast('读取配置失败'); });
+    }
+
+    function save() {
+        var kv = { 'do': 'setting', lookup_enabled: document.getElementById('lookup_enabled').checked, proxy_enabled: document.getElementById('proxy_enabled').checked };
+        FIELDS.forEach(function (key) {
+            kv[key] = document.getElementById(key).value.trim();
+        });
+        var body = Object.keys(kv).map(function (k) {
+            return encodeURIComponent(k) + '=' + encodeURIComponent(kv[k]);
+        }).join('&');
+        fetch('/action', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: body
+        }).then(function (res) {
+            if (res.ok) { toast('保存成功'); } else { toast('保存失败'); }
+        }).catch(function () { toast('保存失败'); });
+    }
+
+    load();
+</script>
+</body>
+</html>

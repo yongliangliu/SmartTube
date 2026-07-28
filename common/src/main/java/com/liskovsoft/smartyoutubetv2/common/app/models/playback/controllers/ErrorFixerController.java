@@ -12,6 +12,8 @@ import com.liskovsoft.smartyoutubetv2.common.app.models.playback.listener.Player
 import com.liskovsoft.smartyoutubetv2.common.exoplayer.selector.FormatItem;
 import com.liskovsoft.smartyoutubetv2.common.misc.BufferingDetector;
 import com.liskovsoft.smartyoutubetv2.common.misc.BufferingDetector.OnLongBuffering;
+import com.liskovsoft.smartyoutubetv2.common.misc.LiveProxyBypass;
+import com.liskovsoft.smartyoutubetv2.common.misc.LiveTvService;
 import com.liskovsoft.smartyoutubetv2.common.prefs.PlayerData;
 import com.liskovsoft.smartyoutubetv2.common.prefs.PlayerTweaksData;
 import com.liskovsoft.smartyoutubetv2.common.utils.Utils;
@@ -103,6 +105,15 @@ public class ErrorFixerController extends BasePlayerController implements OnLong
         if (isStreamEnded()) {
             // Url no longer works (e.g. live stream ended)
             getMainController().onPlayEnd();
+            return;
+        }
+
+        // MOD: TV Live (IPTV) via proxy: on the first failure try the stream without the proxy.
+        // Runtime-only per-host mark, so the second failure falls through to the regular handling.
+        if (LiveTvService.isLiveTvChannel(getVideo())
+                && LiveProxyBypass.markFailed(LiveTvService.getStreamUrl(getVideo()))) {
+            Log.d(TAG, "Live stream failed via proxy. Retrying it directly...");
+            mVideoLoaderController.restartEngine();
             return;
         }
 

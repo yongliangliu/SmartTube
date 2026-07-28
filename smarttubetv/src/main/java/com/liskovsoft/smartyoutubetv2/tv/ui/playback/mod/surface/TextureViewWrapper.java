@@ -25,6 +25,7 @@ public class TextureViewWrapper implements SurfaceWrapper {
         mVideoSurface.setSurfaceTextureListener(new SurfaceTextureListener() {
             @Override
             public void onSurfaceTextureAvailable(SurfaceTexture surface, int width, int height) {
+                android.util.Log.d("SurfaceDebug", "TextureViewWrapper.onSurfaceTextureAvailable: callback=" + mMediaPlaybackCallback);
                 if (mMediaPlaybackCallback != null) {
                     mMediaPlaybackCallback.surfaceCreated(new TextureViewSurfaceHolder(new Surface(surface)));
                 }
@@ -59,6 +60,7 @@ public class TextureViewWrapper implements SurfaceWrapper {
      * Adds {@link SurfaceHolder.Callback} to {@link SurfaceView}.
      */
     public void setSurfaceHolderCallback(SurfaceHolder.Callback callback) {
+        android.util.Log.d("SurfaceDebug", "TextureViewWrapper.setSurfaceHolderCallback: callback=" + callback + " state=" + (mState == SURFACE_CREATED ? "CREATED" : "NOT_CREATED"));
         mMediaPlaybackCallback = callback;
 
         if (callback != null) {

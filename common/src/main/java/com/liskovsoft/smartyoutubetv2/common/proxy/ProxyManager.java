@@ -108,13 +108,24 @@ public class ProxyManager {
         return mProxy;
     }
 
+    // NOTE: an unconfigured proxy is stored as Proxy.NO_PROXY (type DIRECT, null address),
+    // so guard against a null address as well as a null proxy to avoid an NPE.
+    private PasswdInetSocketAddress getProxyAddress() {
+        if (mProxy == null || mProxy.type() == Proxy.Type.DIRECT || mProxy.address() == null) {
+            return null;
+        }
+        return (PasswdInetSocketAddress) mProxy.address();
+    }
+
     @RequiresApi(api = Build.VERSION_CODES.KITKAT)
     public String getProxyHost() {
-        return mProxy == null ? "" : ((PasswdInetSocketAddress) mProxy.address()).getHostString();
+        PasswdInetSocketAddress addr = getProxyAddress();
+        return addr == null ? "" : addr.getHostString();
     }
 
     public int getProxyPort() {
-        return mProxy == null ? 0 : ((PasswdInetSocketAddress) mProxy.address()).getPort();
+        PasswdInetSocketAddress addr = getProxyAddress();
+        return addr == null ? 0 : addr.getPort();
     }
 
     public Proxy.Type getProxyType() {
@@ -122,11 +133,13 @@ public class ProxyManager {
     }
 
     public String getProxyUsername() {
-        return mProxy == null ? "" : ((PasswdInetSocketAddress) mProxy.address()).getUsername();
+        PasswdInetSocketAddress addr = getProxyAddress();
+        return addr == null ? "" : addr.getUsername();
     }
 
     public String getProxyPassword() {
-        return mProxy == null ? "" : ((PasswdInetSocketAddress) mProxy.address()).getPassword();
+        PasswdInetSocketAddress addr = getProxyAddress();
+        return addr == null ? "" : addr.getPassword();
     }
 
     protected void loadProxyInfoFromPrefs() {

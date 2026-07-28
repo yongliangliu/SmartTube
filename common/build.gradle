@@ -98,6 +98,9 @@ dependencies {
 
     implementation 'com.jakewharton:process-phoenix:' + phoenixVersion
 
+    // MOD: web config server (TV-New style)
+    implementation 'org.nanohttpd:nanohttpd:' + nanoHttpdVersion
+
     implementation project(':leanbackassistant')
 
     implementation project(':appupdatechecker2')

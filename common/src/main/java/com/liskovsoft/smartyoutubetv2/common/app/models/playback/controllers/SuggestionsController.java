@@ -27,6 +27,7 @@ import com.liskovsoft.smartyoutubetv2.common.app.models.playback.ui.UiOptionItem
 import com.liskovsoft.smartyoutubetv2.common.app.presenters.AppDialogPresenter;
 import com.liskovsoft.smartyoutubetv2.common.app.presenters.PlaybackPresenter;
 import com.liskovsoft.smartyoutubetv2.common.misc.BrowseProcessorManager;
+import com.liskovsoft.smartyoutubetv2.common.misc.LiveTvService;
 import com.liskovsoft.smartyoutubetv2.common.misc.MediaServiceManager;
 import com.liskovsoft.smartyoutubetv2.common.prefs.GeneralData;
 import com.liskovsoft.smartyoutubetv2.common.utils.Utils;
@@ -234,6 +235,18 @@ public class SuggestionsController extends BasePlayerController {
 
     public void loadSuggestions(Video video) {
         if (isEmbedPlayer()) {
+            return;
+        }
+
+        // MOD: TV Live channel: show the channel list instead of YouTube suggestions
+        if (LiveTvService.isLiveTvChannel(video)) {
+            clearSuggestionsIfNeeded(video);
+            List<Video> channels = LiveTvService.instance(getContext()).getCachedChannels();
+            if (getPlayer() != null && !channels.isEmpty()) {
+                VideoGroup group = VideoGroup.from(channels);
+                group.setTitle(getContext().getString(R.string.header_tv_live));
+                getPlayer().updateSuggestions(group);
+            }
             return;
         }
 
