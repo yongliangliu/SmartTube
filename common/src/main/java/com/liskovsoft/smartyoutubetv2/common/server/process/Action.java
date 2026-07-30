@@ -141,9 +141,16 @@ public class Action implements Process {
 
             proxyManager.configureSystemProxy();
             GeneralData.instance(mContext).setProxyEnabled(enabled);
-            // Proxy with authentication is supported only by OkHttp (same as the on-device settings)
+            // MOD: only proxies WITH authentication require OkHttp (Cronet/Default can't authenticate
+            // to a proxy). For an anonymous proxy keep the faster Cronet stack: it honors the proxy
+            // via system properties + PROXY_CHANGE broadcast and negotiates HTTP/2 inside the CONNECT
+            // tunnel, while the shared OkHttp client is force-pinned to HTTP/1.1 (see OkHttpCommons
+            // #fixStreamResetError), which serializes segment requests and is slow on high-RTT links.
+            boolean proxyHasAuth = enabled
+                    && !TextUtils.isEmpty(params.get("proxy_username"))
+                    && !TextUtils.isEmpty(params.get("proxy_password"));
             PlayerTweaksData.instance(mContext).setPlayerDataSource(
-                    enabled ? PlayerTweaksData.PLAYER_DATA_SOURCE_OKHTTP : PlayerTweaksData.PLAYER_DATA_SOURCE_CRONET);
+                    proxyHasAuth ? PlayerTweaksData.PLAYER_DATA_SOURCE_OKHTTP : PlayerTweaksData.PLAYER_DATA_SOURCE_CRONET);
             if (enabled) {
                 LiveProxyBypass.install();
             }

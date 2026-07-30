@@ -4,6 +4,7 @@ import android.content.Context;
 import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
+import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.EditText;
@@ -16,6 +17,7 @@ import com.liskovsoft.sharedutils.helpers.KeyHelpers;
 import com.liskovsoft.sharedutils.mylogger.Log;
 import com.liskovsoft.sharedutils.okhttp.OkHttpManager;
 import com.liskovsoft.smartyoutubetv2.common.R;
+import com.liskovsoft.smartyoutubetv2.common.prefs.PlayerTweaksData;
 import okhttp3.Call;
 import okhttp3.Callback;
 import okhttp3.OkHttpClient;
@@ -57,8 +59,23 @@ public class WebProxyDialog {
                 showProxyConfigDialog();
             } else {
                 mProxyManager.configureSystemProxy();
+                applyRecommendedDataSource(); // proxy off -> restore fast Cronet stack
             }
         }
+    }
+
+    /**
+     * MOD: pick the player network stack based on the proxy.
+     * Only a proxy WITH authentication needs OkHttp (Cronet/Default can't authenticate to a proxy);
+     * for an anonymous proxy keep Cronet, which negotiates HTTP/2 inside the CONNECT tunnel and is
+     * much faster on high-RTT links than the HTTP/1.1-pinned OkHttp client.
+     */
+    private void applyRecommendedDataSource() {
+        boolean needsOkHttp = mProxyManager.isProxyEnabled()
+                && !TextUtils.isEmpty(mProxyManager.getProxyUsername())
+                && !TextUtils.isEmpty(mProxyManager.getProxyPassword());
+        PlayerTweaksData.instance(mContext).setPlayerDataSource(
+                needsOkHttp ? PlayerTweaksData.PLAYER_DATA_SOURCE_OKHTTP : PlayerTweaksData.PLAYER_DATA_SOURCE_CRONET);
     }
 
     protected void appendStatusMessage(String msgFormat, Object ...args) {
@@ -236,6 +253,7 @@ public class WebProxyDialog {
                 // Proxy saved on OK button press
                 //mProxyManager.saveProxyInfoToPrefs(proxy, true);
                 mProxyManager.configureSystemProxy();
+                applyRecommendedDataSource(); // decide OkHttp vs Cronet from the entered proxy
                 for (Call call: mUrlTests) call.cancel();
             }
         });

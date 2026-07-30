@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- MOD: virtual remote cursor for the Page WebView -->
+<!-- MOD: virtual remote cursor for the Page WebView.
+     Inner dot is positioned with inset (android:left/top/right/bottom) instead of
+     android:width/height/gravity, because those <item> attributes only exist since
+     API 23. On API 19 they are ignored and the white dot would fill the whole ring,
+     turning the cursor into a solid white blob (invisible on white pages). -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
     <item>
         <shape android:shape="oval">
@@ -8,10 +12,7 @@
             <stroke android:width="2dp" android:color="#FFFFFFFF"/>
         </shape>
     </item>
-    <item
-        android:width="8dp"
-        android:height="8dp"
-        android:gravity="center">
+    <item android:left="10dp" android:top="10dp" android:right="10dp" android:bottom="10dp">
         <shape android:shape="oval">
             <solid android:color="#FFFFFFFF"/>
         </shape>

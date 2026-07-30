@@ -649,9 +649,9 @@ public class GeneralSettingsPresenter extends BasePresenter<Void> {
         if (proxyManager.isProxySupported()) {
             options.add(UiOptionItem.from(getContext().getString(R.string.enable_web_proxy),
                     option -> {
-                        // Proxy with authentication supported only by OkHttp
-                        mPlayerTweaksData.setPlayerDataSource(
-                                option.isSelected() ? PlayerTweaksData.PLAYER_DATA_SOURCE_OKHTTP : PlayerTweaksData.PLAYER_DATA_SOURCE_CRONET);
+                        // MOD: the player data source (OkHttp vs Cronet) is now decided inside
+                        // WebProxyDialog once the proxy details are known, so an anonymous proxy
+                        // keeps the faster Cronet stack instead of always downgrading to OkHttp.
                         mGeneralData.setProxyEnabled(option.isSelected());
                         new WebProxyDialog(getContext()).enable(option.isSelected());
                         if (option.isSelected()) {

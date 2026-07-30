@@ -797,7 +797,11 @@ public class PlayerData extends DataChangeBase implements PlayerConstants, Profi
         mVideoFormat = Helpers.firstNonNull(ExoFormatItem.from(Helpers.parseStr(split, 9)), getDefaultVideoFormat());
         mAudioFormat = Helpers.firstNonNull(ExoFormatItem.from(Helpers.parseStr(split, 10)), getDefaultAudioFormat());
         mSubtitleFormat = Helpers.firstNonNull(ExoFormatItem.from(Helpers.parseStr(split, 11)), getDefaultSubtitleFormat());
-        mVideoBufferType = Helpers.parseInt(split, 12, PlayerEngine.BUFFER_MEDIUM);
+        // MOD: default raised MEDIUM -> HIGHEST. On high-RTT proxy links a deep forward
+        // buffer rides out round-trip stalls far better. HIGHEST caps by a byte budget
+        // (setTargetBufferBytes = RAM/10) so it buffers minutes on low bitrate yet won't OOM;
+        // MainApplication/ErrorFixerController still downgrade to MEDIUM on any OOM.
+        mVideoBufferType = Helpers.parseInt(split, 12, PlayerEngine.BUFFER_HIGHEST);
         mSubtitleStyleIndex = Helpers.parseInt(split, 13, yellowOnSemiBgSubIdx);
         mResizeMode = Helpers.parseInt(split, 14, PlayerEngine.RESIZE_MODE_DEFAULT);
         mSpeed = Helpers.parseFloat(split, 15, 1.0f);

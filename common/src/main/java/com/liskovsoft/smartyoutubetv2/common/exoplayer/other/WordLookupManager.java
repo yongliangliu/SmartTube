@@ -4,6 +4,7 @@ import android.content.Context;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
+import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
 import android.text.SpannableStringBuilder;
@@ -769,7 +770,11 @@ public class WordLookupManager {
         bg.setCornerRadius(dp(10));
         bg.setStroke(dp(1), 0x66FFFFFF);
         mCard.setBackground(bg);
-        mCard.setElevation(dp(8));
+        // setElevation() is API 21+. On older devices (e.g. Android 4.4/API 19) calling it
+        // throws NoSuchMethodError and crashes the player; the card looks fine without it.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            mCard.setElevation(dp(8));
+        }
 
         mCardTitle = new TextView(mContext);
         mCardTitle.setTextColor(Color.WHITE);

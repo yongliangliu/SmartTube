@@ -3,6 +3,7 @@ package com.liskovsoft.smartyoutubetv2.tv.ui.webbrowser;
 import android.annotation.SuppressLint;
 import android.graphics.Bitmap;
 import android.graphics.Color;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.SystemClock;
 import android.view.KeyEvent;
@@ -37,6 +38,7 @@ public class WebBrowserFragment extends Fragment implements WebBrowserView, Curs
     private WebBrowserPresenter mWebBrowserPresenter;
     private float mCursorX;
     private float mCursorY;
+    private boolean mForceViewport;
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -76,12 +78,25 @@ public class WebBrowserFragment extends Fragment implements WebBrowserView, Curs
         settings.setLoadWithOverviewMode(true);
         settings.setSupportZoom(false);
         settings.setMediaPlaybackRequiresUserGesture(false);
-        settings.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
+        // setMixedContentMode() is API 21+. On Android 4.4/API 19 it throws NoSuchMethodError
+        // and crashes when the Page opens; older WebViews allow mixed content by default anyway.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            settings.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
+        }
         settings.setCacheMode(WebSettings.LOAD_DEFAULT);
         settings.setUserAgentString(getDesktopUserAgent(settings));
-        // Force 1:1 rendering: on a density-2 TV the default viewport is only 960px, triggering
-        // a narrow (mobile) layout that gets scaled up and blurry.
-        mWebView.setInitialScale(100);
+        // Force 1:1 rendering only on density-2+ TVs (e.g. 4K): there the default viewport is
+        // only ~960px, triggering a narrow (mobile) layout that gets scaled up and blurry.
+        // Lower densities already get a wide enough viewport (1.5 -> 1280px, 1 -> 1920px), so
+        // render as-is to avoid scale glitches (seen on an Android 4.4 density-1.5 1080p box).
+        float density = getResources().getDisplayMetrics().density;
+        mForceViewport = density >= 2f;
+        if (mForceViewport) {
+            // The old Chromium WebView (API < 21) multiplies the initial scale by the device
+            // density, so pass a density-compensated value to keep 1 CSS px = 1 physical px.
+            int scale = Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP ? 100 : Math.round(100 / density);
+            mWebView.setInitialScale(scale);
+        }
 
         mWebView.setWebViewClient(new WebViewClient() {
             @Override
@@ -130,6 +145,9 @@ public class WebBrowserFragment extends Fragment implements WebBrowserView, Curs
     // A desktop page without a viewport meta is laid out at a fixed 980px by the WebView;
     // inject width=<view width> to get the full desktop viewport. Skip when unchanged to avoid relayout.
     private void injectViewport(WebView view) {
+        if (!mForceViewport) {
+            return;
+        }
         int width = view.getWidth() > 0 ? view.getWidth() : 1920;
         view.evaluateJavascript("(function(){var c='width=" + width + "';var m=document.querySelector('meta[name=viewport]');if(!m){m=document.createElement('meta');m.name='viewport';document.head.appendChild(m);}if(m.content!==c)m.content=c;})();", null);
     }

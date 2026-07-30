@@ -58,7 +58,14 @@ public class ExoMediaSourceFactory {
     private static final String TAG = ExoMediaSourceFactory.class.getSimpleName();
     @SuppressLint("StaticFieldLeak")
     //private static ExoMediaSourceFactory sInstance;
-    private static final int MAX_SEGMENTS_PER_LOAD = 1; // default - 1 (1-5)
+    // MOD: batch several adjacent segments into one larger byte-range request (was 1).
+    // Fewer requests = fewer request/response round-trip gaps, which is the main throughput
+    // killer on high-latency links (e.g. playing through a remote HTTP/SOCKS proxy over WAN).
+    // No hard cap in code; the original "1-5" note was only a suggestion. Raised for higher
+    // sustained throughput over a WAN proxy. Trade-off at large values (~5s per segment): coarser
+    // ABR (quality only re-evaluated at chunk boundaries), more waste on seek/quality-switch, and
+    // diminishing returns once proxy bandwidth / buffer byte-budget (RAM/10) become the real limit.
+    private static final int MAX_SEGMENTS_PER_LOAD = 20; // was 1 (author's suggested range 1-5)
     private static final String USER_AGENT = DefaultHeaders.APP_USER_AGENT;
     @SuppressLint("StaticFieldLeak")
     private static final DefaultBandwidthMeter BANDWIDTH_METER = new DefaultBandwidthMeter();
